@@ -3,6 +3,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const db = require("./db");
 const { signToken, requireAuth, requireAdmin } = require("./auth");
+const { ensureAdmin } = require("./ensure-admin");
 
 const SCHOOL_EMAIL_DOMAIN = "@shinezuunbileg.edu.mn";
 const PORT = process.env.PORT || 3000;
@@ -176,6 +177,11 @@ app.delete("/api/admin/users/:id", requireAuth, requireAdmin, (req, res) => {
   db.prepare("DELETE FROM clubs WHERE created_by = ?").run(target.id);
   db.prepare("DELETE FROM users WHERE id = ?").run(target.id);
   res.status(204).end();
+});
+
+ensureAdmin({
+  email: process.env.ADMIN_EMAIL || "admin@shzb-clubs.local",
+  password: process.env.ADMIN_PASSWORD || "ChangeMe123!",
 });
 
 app.listen(PORT, () => {
