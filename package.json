@@ -1,0 +1,15 @@
+{
+  "name": "shzb-community",
+  "version": "1.0.0",
+  "description": "Shine Zuun Bileg Clubs - bridge between school clubs and students",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed-admin": "node seed-admin.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

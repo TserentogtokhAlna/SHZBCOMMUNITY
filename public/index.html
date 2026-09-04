@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shine Zuun Bileg Clubs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow" aria-hidden="true"></div>
+
+<!-- ===================== AUTH VIEW ===================== -->
+<section id="view-auth" class="auth-view">
+  <div class="auth-card">
+    <div class="logo-badge auth-logo"><img src="logo.jpg" alt="Shine Zuun Bileg logo"></div>
+    <h1 class="auth-title">Shine Zuun Bileg</h1>
+    <p class="auth-subtitle">// connecting students with school clubs</p>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="register">Register</button>
+      <button class="auth-tab" data-tab="login">Login</button>
+    </div>
+
+    <!-- Register form -->
+    <form id="form-register" class="auth-form active">
+      <div class="form-row">
+        <div class="field">
+          <label for="reg-firstname">First name</label>
+          <input type="text" id="reg-firstname" required>
+        </div>
+        <div class="field">
+          <label for="reg-lastname">Last name</label>
+          <input type="text" id="reg-lastname" required>
+        </div>
+      </div>
+      <div class="field">
+        <label for="reg-email">School email</label>
+        <input type="email" id="reg-email" placeholder="you@shinezuunbileg.edu.mn" required>
+      </div>
+      <div class="field">
+        <label for="reg-password">Password</label>
+        <input type="password" id="reg-password" minlength="6" required>
+      </div>
+      <div class="field">
+        <label for="reg-password-confirm">Confirm password</label>
+        <input type="password" id="reg-password-confirm" minlength="6" required>
+      </div>
+      <p class="form-error" id="register-error"></p>
+      <button type="submit" class="btn btn-primary btn-block">Create account</button>
+    </form>
+
+    <!-- Login form -->
+    <form id="form-login" class="auth-form">
+      <div class="field">
+        <label for="login-email">School email</label>
+        <input type="email" id="login-email" placeholder="you@shinezuunbileg.edu.mn" required>
+      </div>
+      <div class="field">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" required>
+      </div>
+      <p class="form-error" id="login-error"></p>
+      <button type="submit" class="btn btn-primary btn-block">Log in</button>
+    </form>
+  </div>
+</section>
+
+<!-- ===================== APP VIEW ===================== -->
+<div id="view-app" class="app-view">
+
+  <header class="app-header">
+    <div class="logo-badge header-logo" title="Home"><img src="logo.jpg" alt="Shine Zuun Bileg logo"></div>
+    <button class="header-title" id="brand-home-btn">Shine Zuun Bileg Clubs</button>
+    <div class="header-profile">
+      <button class="profile-avatar" id="profile-btn"></button>
+      <div class="profile-menu" id="profile-menu">
+        <div class="profile-menu-name" id="profile-menu-name"></div>
+        <div class="profile-menu-email" id="profile-menu-email"></div>
+        <button class="profile-menu-logout" id="logout-btn">Log out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-main">
+
+    <!-- Club list -->
+    <section id="view-club-list" class="view-panel active">
+      <div class="panel-heading">
+        <h2>All Clubs</h2>
+        <p class="panel-subtext">Browse clubs created by students at Shine Zuun Bileg</p>
+      </div>
+      <div id="club-grid" class="club-grid"></div>
+      <div id="club-empty" class="empty-state" hidden>
+        <p>No clubs yet. Be the first to create one!</p>
+      </div>
+    </section>
+
+    <!-- Club detail -->
+    <section id="view-club-detail" class="view-panel">
+      <button class="back-btn" id="detail-back-btn">&larr; Back to clubs</button>
+      <div class="club-detail-card">
+        <div class="club-detail-header">
+          <span class="club-badge" id="detail-category"></span>
+          <h2 id="detail-name"></h2>
+          <p class="club-detail-meta" id="detail-meta"></p>
+        </div>
+        <div class="club-detail-body">
+          <h3>About</h3>
+          <p id="detail-description"></p>
+          <h3>Meeting Info</h3>
+          <p id="detail-meeting"></p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Floating action button -->
+  <button id="fab-create-club" class="fab" title="Create a new club">+</button>
+
+  <div id="toast" class="toast" hidden></div>
+
+</div>
+
+<!-- ===================== CREATE CLUB MODAL ===================== -->
+<div id="modal-overlay" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Create a new club</h2>
+      <button class="modal-close" id="modal-close-btn">&times;</button>
+    </div>
+    <form id="form-create-club">
+      <div class="field">
+        <label for="club-name">Club name</label>
+        <input type="text" id="club-name" required>
+      </div>
+      <div class="field">
+        <label for="club-category">Category</label>
+        <select id="club-category">
+          <option>Academic</option>
+          <option>Arts</option>
+          <option>Sports</option>
+          <option>Technology</option>
+          <option>Volunteer</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="club-description">Description</label>
+        <textarea id="club-description" rows="3" required></textarea>
+      </div>
+      <div class="field">
+        <label for="club-meeting">Meeting info (day, time, location)</label>
+        <input type="text" id="club-meeting" placeholder="e.g. Fridays 3PM, Room 204">
+      </div>
+      <p class="form-error" id="create-club-error"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create club</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

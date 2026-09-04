@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard - Shine Zuun Bileg Clubs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body class="admin-body">
+
+<div class="bg-grid" aria-hidden="true"></div>
+<div class="bg-glow admin-glow" aria-hidden="true"></div>
+
+<header class="app-header admin-header">
+  <div class="logo-badge header-logo admin-logo"><img src="logo.jpg" alt="Shine Zuun Bileg logo"></div>
+  <div class="header-title admin-header-title">Shine Zuun Bileg <span class="admin-tag">ADMIN</span></div>
+  <div class="header-profile">
+    <button class="profile-avatar" id="profile-btn">A</button>
+    <div class="profile-menu" id="profile-menu">
+      <div class="profile-menu-name" id="profile-menu-name"></div>
+      <div class="profile-menu-email" id="profile-menu-email"></div>
+      <button class="profile-menu-logout" id="logout-btn">Log out</button>
+    </div>
+  </div>
+</header>
+
+<main class="app-main admin-main">
+
+  <div class="admin-stats">
+    <div class="stat-card">
+      <div class="stat-value" id="stat-users">0</div>
+      <div class="stat-label">Registered students</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-clubs">0</div>
+      <div class="stat-label">Clubs created</div>
+    </div>
+    <div class="stat-card stat-card-pending">
+      <div class="stat-value" id="stat-pending">0</div>
+      <div class="stat-label">Pending requests</div>
+    </div>
+  </div>
+
+  <section class="admin-section">
+    <h2>Pending Club Requests</h2>
+    <div class="table-wrap">
+      <table class="admin-table" id="pending-table">
+        <thead>
+          <tr>
+            <th>Club</th>
+            <th>Category</th>
+            <th>Requested by</th>
+            <th>Requested</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="pending-tbody"></tbody>
+      </table>
+      <p class="empty-state" id="pending-empty" hidden>No pending requests. All caught up.</p>
+    </div>
+  </section>
+
+  <section class="admin-section">
+    <h2>All Clubs</h2>
+    <div class="table-wrap">
+      <table class="admin-table" id="clubs-table">
+        <thead>
+          <tr>
+            <th>Club</th>
+            <th>Category</th>
+            <th>Created by</th>
+            <th>Created</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="clubs-tbody"></tbody>
+      </table>
+      <p class="empty-state" id="clubs-empty" hidden>No clubs yet.</p>
+    </div>
+  </section>
+
+  <section class="admin-section">
+    <h2>All Accounts</h2>
+    <div class="table-wrap">
+      <table class="admin-table" id="users-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Clubs</th>
+            <th>Joined</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="users-tbody"></tbody>
+      </table>
+      <p class="empty-state" id="users-empty" hidden>No accounts yet.</p>
+    </div>
+  </section>
+
+</main>
+
+<script src="admin.js"></script>
+</body>
+</html>
