@@ -1,33 +1,26 @@
 const SCHOOL_EMAIL_DOMAIN = "@shinezuunbileg.edu.mn";
-const TOKEN_KEY = "shzb_token";
 
 let currentUser = null;
-
-// ---------- API helper ----------
-
-async function api(path, options = {}) {
-  const token = localStorage.getItem(TOKEN_KEY);
-  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
-  const res = await fetch(path, { ...options, headers });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.error || "Something went wrong.");
-  }
-  return data;
-}
 
 // ---------- elements ----------
 
 const viewAuth = document.getElementById("view-auth");
 const viewApp = document.getElementById("view-app");
 
+const authTabsEl = document.getElementById("auth-tabs");
 const authTabs = document.querySelectorAll(".auth-tab");
 const formRegister = document.getElementById("form-register");
 const formLogin = document.getElementById("form-login");
 const registerError = document.getElementById("register-error");
 const loginError = document.getElementById("login-error");
+
+const panelVerify = document.getElementById("panel-verify");
+const formVerify = document.getElementById("form-verify");
+const verifyError = document.getElementById("verify-error");
+const verifyEmailDisplay = document.getElementById("verify-email-display");
+const verifyCodeInput = document.getElementById("verify-code");
+const resendCodeBtn = document.getElementById("resend-code-btn");
+const verifyBackBtn = document.getElementById("verify-back-btn");
 
 const profileBtn = document.getElementById("profile-btn");
 const profileMenu = document.getElementById("profile-menu");
@@ -70,6 +63,81 @@ authTabs.forEach(tab => {
   });
 });
 
+// ---------- email verification panel ----------
+
+let pendingVerifyEmail = null;
+let resendCooldownTimer = null;
+
+function showVerifyPanel(email) {
+  pendingVerifyEmail = email;
+  verifyEmailDisplay.textContent = email;
+  verifyError.textContent = "";
+  verifyCodeInput.value = "";
+
+  authTabsEl.hidden = true;
+  formRegister.classList.remove("active");
+  formLogin.classList.remove("active");
+  panelVerify.classList.add("active");
+}
+
+function hideVerifyPanel(targetTab) {
+  panelVerify.classList.remove("active");
+  authTabsEl.hidden = false;
+  authTabs.forEach(t => t.classList.toggle("active", t.dataset.tab === targetTab));
+  formRegister.classList.toggle("active", targetTab === "register");
+  formLogin.classList.toggle("active", targetTab === "login");
+}
+
+verifyBackBtn.addEventListener("click", () => hideVerifyPanel("login"));
+
+formVerify.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  verifyError.textContent = "";
+
+  const code = verifyCodeInput.value.trim();
+
+  const { error } = await supabaseClient.auth.verifyOtp({
+    email: pendingVerifyEmail,
+    token: code,
+    type: "signup",
+  });
+  if (error) {
+    verifyError.textContent = error.message;
+    return;
+  }
+  await afterAuthSuccess();
+});
+
+resendCodeBtn.addEventListener("click", async () => {
+  resendCodeBtn.disabled = true;
+  verifyError.textContent = "";
+
+  const { error } = await supabaseClient.auth.resend({
+    type: "signup",
+    email: pendingVerifyEmail,
+  });
+
+  if (error) {
+    verifyError.textContent = error.message;
+    resendCodeBtn.disabled = false;
+    return;
+  }
+
+  let secondsLeft = 60;
+  resendCodeBtn.textContent = `Resend code (${secondsLeft}s)`;
+  clearInterval(resendCooldownTimer);
+  resendCooldownTimer = setInterval(() => {
+    secondsLeft -= 1;
+    if (secondsLeft <= 0) {
+      clearInterval(resendCooldownTimer);
+      resendCodeBtn.disabled = false;
+      resendCodeBtn.textContent = "Resend code";
+    } else {
+      resendCodeBtn.textContent = `Resend code (${secondsLeft}s)`;
+    }
+  }, 1000);
+});
+
 // ---------- register ----------
 
 formRegister.addEventListener("submit", async (e) => {
@@ -91,17 +159,16 @@ formRegister.addEventListener("submit", async (e) => {
     return;
   }
 
-  try {
-    const data = await api("/api/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ firstName, lastName, email, password }),
-    });
-    localStorage.setItem(TOKEN_KEY, data.token);
-    currentUser = data.user;
-    enterApp();
-  } catch (err) {
-    registerError.textContent = err.message;
+  const { error } = await supabaseClient.auth.signUp({
+    email,
+    password,
+    options: { data: { first_name: firstName, last_name: lastName } },
+  });
+  if (error) {
+    registerError.textContent = error.message;
+    return;
   }
+  showVerifyPanel(email);
 });
 
 // ---------- login ----------
@@ -113,31 +180,57 @@ formLogin.addEventListener("submit", async (e) => {
   const email = document.getElementById("login-email").value.trim().toLowerCase();
   const password = document.getElementById("login-password").value;
 
-  try {
-    const data = await api("/api/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
-    localStorage.setItem(TOKEN_KEY, data.token);
-    currentUser = data.user;
-
-    if (currentUser.role === "admin") {
-      window.location.href = "/admin.html";
-      return;
+  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) {
+    if (error.message.toLowerCase().includes("confirm")) {
+      showVerifyPanel(email);
+    } else {
+      loginError.textContent = error.message;
     }
-    enterApp();
-  } catch (err) {
-    loginError.textContent = err.message;
+    return;
   }
+  await afterAuthSuccess();
 });
 
 // ---------- app entry / profile ----------
+
+async function afterAuthSuccess() {
+  const {
+    data: { user },
+  } = await supabaseClient.auth.getUser();
+  if (!user) return;
+
+  const { data: profile, error } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+  if (error || !profile) {
+    loginError.textContent = "Could not load your profile. Try logging in again.";
+    return;
+  }
+
+  currentUser = {
+    id: profile.id,
+    firstName: profile.first_name,
+    lastName: profile.last_name,
+    email: profile.email,
+    role: profile.role,
+  };
+
+  if (currentUser.role === "admin") {
+    window.location.href = "/admin.html";
+    return;
+  }
+  enterApp();
+}
 
 function enterApp() {
   if (!currentUser) return;
 
   viewAuth.style.display = "none";
   viewApp.style.display = "block";
+  hideVerifyPanel("register");
 
   const initials = (currentUser.firstName[0] || "") + (currentUser.lastName[0] || "");
   profileBtn.textContent = initials.toUpperCase();
@@ -156,13 +249,14 @@ document.addEventListener("click", () => {
   profileMenu.classList.remove("open");
 });
 
-logoutBtn.addEventListener("click", () => {
-  localStorage.removeItem(TOKEN_KEY);
+logoutBtn.addEventListener("click", async () => {
+  await supabaseClient.auth.signOut();
   currentUser = null;
   viewApp.style.display = "none";
   viewAuth.style.display = "flex";
   formLogin.reset();
   formRegister.reset();
+  hideVerifyPanel("register");
 });
 
 brandHomeBtn.addEventListener("click", showClubList);
@@ -190,50 +284,33 @@ function showClubDetail(club) {
 detailBackBtn.addEventListener("click", showClubList);
 
 async function renderClubs() {
-  let clubs = [];
-  try {
-    const data = await api("/api/clubs");
-    clubs = data.clubs;
-  } catch (err) {
-    if (err.message.includes("session")) {
-      logoutBtn.click();
-      return;
-    }
-  }
+  const { data: clubs, error } = await supabaseClient
+    .from("clubs")
+    .select("*, creator:profiles(first_name, last_name)")
+    .eq("status", "approved")
+    .order("created_at", { ascending: false });
 
   clubGrid.innerHTML = "";
 
-  if (clubs.length === 0) {
+  if (error || !clubs || clubs.length === 0) {
     clubEmpty.hidden = false;
     return;
   }
   clubEmpty.hidden = true;
 
   clubs.forEach(club => {
+    const createdByName = `${club.creator.first_name} ${club.creator.last_name}`;
     const card = document.createElement("button");
     card.className = "club-card";
     card.innerHTML = `
       <span class="club-badge" data-category="${escapeHtml(club.category)}">${escapeHtml(club.category)}</span>
       <h3>${escapeHtml(club.name)}</h3>
       <p>${escapeHtml(club.description)}</p>
-      <div class="club-card-footer">by ${escapeHtml(club.createdByName)}</div>
+      <div class="club-card-footer">by ${escapeHtml(createdByName)}</div>
     `;
-    card.addEventListener("click", () => showClubDetail(club));
+    card.addEventListener("click", () => showClubDetail({ ...club, createdByName }));
     clubGrid.appendChild(card);
   });
-}
-
-let toastTimer = null;
-
-function showToast(message) {
-  clearTimeout(toastTimer);
-  toast.textContent = message;
-  toast.hidden = false;
-  requestAnimationFrame(() => toast.classList.add("show"));
-  toastTimer = setTimeout(() => {
-    toast.classList.remove("show");
-    setTimeout(() => { toast.hidden = true; }, 300);
-  }, 4000);
 }
 
 function escapeHtml(str) {
@@ -275,40 +352,54 @@ formCreateClub.addEventListener("submit", async (e) => {
     return;
   }
 
-  try {
-    await api("/api/clubs", {
-      method: "POST",
-      body: JSON.stringify({ name, category, description, meeting }),
-    });
-    closeModal();
-    showClubList();
-    showToast("Club submitted! An admin will review it before it appears publicly.");
-  } catch (err) {
-    createClubError.textContent = err.message;
+  const {
+    data: { user },
+  } = await supabaseClient.auth.getUser();
+
+  const { error } = await supabaseClient.from("clubs").insert({
+    name,
+    category,
+    description,
+    meeting,
+    created_by: user.id,
+    status: "pending",
+  });
+
+  if (error) {
+    createClubError.textContent = error.message;
+    return;
   }
+
+  closeModal();
+  showClubList();
+  showToast("Club submitted! An admin will review it before it appears publicly.");
 });
+
+let toastTimer = null;
+
+function showToast(message) {
+  clearTimeout(toastTimer);
+  toast.textContent = message;
+  toast.hidden = false;
+  requestAnimationFrame(() => toast.classList.add("show"));
+  toastTimer = setTimeout(() => {
+    toast.classList.remove("show");
+    setTimeout(() => { toast.hidden = true; }, 300);
+  }, 4000);
+}
 
 // ---------- boot ----------
 
 (async function boot() {
-  const token = localStorage.getItem(TOKEN_KEY);
-  if (!token) {
+  const {
+    data: { session },
+  } = await supabaseClient.auth.getSession();
+
+  if (!session) {
     viewAuth.style.display = "flex";
     viewApp.style.display = "none";
     return;
   }
 
-  try {
-    const data = await api("/api/auth/me");
-    currentUser = data.user;
-    if (currentUser.role === "admin") {
-      window.location.href = "/admin.html";
-      return;
-    }
-    enterApp();
-  } catch {
-    localStorage.removeItem(TOKEN_KEY);
-    viewAuth.style.display = "flex";
-    viewApp.style.display = "none";
-  }
+  await afterAuthSuccess();
 })();

@@ -22,7 +22,7 @@
     <p class="auth-subtitle">// connecting students with school clubs</p>
 
     <!-- Tabs -->
-    <div class="auth-tabs">
+    <div class="auth-tabs" id="auth-tabs">
       <button class="auth-tab active" data-tab="register">Register</button>
       <button class="auth-tab" data-tab="login">Login</button>
     </div>
@@ -68,6 +68,21 @@
       <p class="form-error" id="login-error"></p>
       <button type="submit" class="btn btn-primary btn-block">Log in</button>
     </form>
+
+    <!-- Email verification panel -->
+    <div id="panel-verify" class="auth-form">
+      <p class="verify-intro">Enter the code we sent to <strong id="verify-email-display"></strong></p>
+      <form id="form-verify">
+        <div class="field">
+          <label for="verify-code">Verification code</label>
+          <input type="text" id="verify-code" inputmode="numeric" pattern="[0-9]*" maxlength="10" autocomplete="one-time-code" required>
+        </div>
+        <p class="form-error" id="verify-error"></p>
+        <button type="submit" class="btn btn-primary btn-block">Verify</button>
+      </form>
+      <button type="button" class="btn btn-secondary btn-block" id="resend-code-btn">Resend code</button>
+      <button type="button" class="btn-link" id="verify-back-btn">&larr; Back to login</button>
+    </div>
   </div>
 </section>
 
@@ -168,6 +183,8 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
