@@ -185,6 +185,7 @@ async function loadUsers() {
     tr.innerHTML = `
       <td>${escapeHtml(profile.first_name)} ${escapeHtml(profile.last_name)}</td>
       <td>${escapeHtml(profile.email)}</td>
+      <td><span class="role-badge ${profile.account_type}">${profile.account_type}</span></td>
       <td><span class="role-badge ${profile.role}">${profile.role}</span></td>
       <td>${clubCountByUser[profile.id] || 0}</td>
       <td>${formatDate(profile.created_at)}</td>

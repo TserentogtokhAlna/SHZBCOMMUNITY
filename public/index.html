@@ -29,6 +29,13 @@
 
     <!-- Register form -->
     <form id="form-register" class="auth-form active">
+      <div class="field">
+        <label>I am a</label>
+        <div class="account-type-toggle" id="account-type-toggle">
+          <button type="button" class="account-type-btn active" data-account-type="student">Student</button>
+          <button type="button" class="account-type-btn" data-account-type="teacher">Teacher</button>
+        </div>
+      </div>
       <div class="form-row">
         <div class="field">
           <label for="reg-firstname">First name</label>
@@ -119,17 +126,41 @@
     <!-- Club detail -->
     <section id="view-club-detail" class="view-panel">
       <button class="back-btn" id="detail-back-btn">&larr; Back to clubs</button>
+
       <div class="club-detail-card">
-        <div class="club-detail-header">
-          <span class="club-badge" id="detail-category"></span>
-          <h2 id="detail-name"></h2>
-          <p class="club-detail-meta" id="detail-meta"></p>
+        <div class="club-banner" id="detail-banner">
+          <div class="club-banner-logo" id="detail-logo"></div>
         </div>
-        <div class="club-detail-body">
+
+        <div class="club-detail-titlebar">
+          <div class="club-detail-titlebar-info">
+            <span class="club-badge" id="detail-category"></span>
+            <h2 id="detail-name"></h2>
+            <p class="club-detail-meta" id="detail-meta"></p>
+          </div>
+          <div class="club-detail-actions" id="detail-actions"></div>
+        </div>
+
+        <div class="club-detail-tabs">
+          <button class="detail-tab active" data-detail-tab="overview">Overview</button>
+          <button class="detail-tab" data-detail-tab="members">Members</button>
+        </div>
+
+        <div class="club-detail-panel active" id="detail-panel-overview">
           <h3>About</h3>
           <p id="detail-description"></p>
           <h3>Meeting Info</h3>
           <p id="detail-meeting"></p>
+        </div>
+
+        <div class="club-detail-panel" id="detail-panel-members">
+          <div id="detail-requests-section" hidden>
+            <h3>Pending Requests</h3>
+            <div id="detail-requests-list" class="members-list"></div>
+          </div>
+          <h3>Members</h3>
+          <div id="detail-members-list" class="members-list"></div>
+          <p class="empty-state" id="detail-members-empty" hidden>No members yet.</p>
         </div>
       </div>
     </section>
@@ -147,7 +178,7 @@
 <div id="modal-overlay" class="modal-overlay">
   <div class="modal">
     <div class="modal-header">
-      <h2>Create a new club</h2>
+      <h2 id="modal-title">Create a new club</h2>
       <button class="modal-close" id="modal-close-btn">&times;</button>
     </div>
     <form id="form-create-club">
@@ -177,7 +208,7 @@
       <p class="form-error" id="create-club-error"></p>
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
-        <button type="submit" class="btn btn-primary">Create club</button>
+        <button type="submit" class="btn btn-primary" id="modal-submit-btn">Create club</button>
       </div>
     </form>
   </div>

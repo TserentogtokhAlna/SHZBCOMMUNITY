@@ -1,6 +1,11 @@
 const SCHOOL_EMAIL_DOMAIN = "@shinezuunbileg.edu.mn";
+// TEMPORARY: domain restriction disabled for testing. Set back to true before
+// real launch (and re-enable the matching check in the database trigger —
+// see supabase/migration_003_teacher_type_and_domain_toggle.sql).
+const ENFORCE_SCHOOL_EMAIL_DOMAIN = false;
 
 let currentUser = null;
+let selectedAccountType = "student";
 
 // ---------- elements ----------
 
@@ -35,15 +40,27 @@ const clubEmpty = document.getElementById("club-empty");
 const viewClubList = document.getElementById("view-club-list");
 const viewClubDetail = document.getElementById("view-club-detail");
 const detailBackBtn = document.getElementById("detail-back-btn");
+const detailBanner = document.getElementById("detail-banner");
+const detailLogo = document.getElementById("detail-logo");
 const detailCategory = document.getElementById("detail-category");
 const detailName = document.getElementById("detail-name");
 const detailMeta = document.getElementById("detail-meta");
+const detailActions = document.getElementById("detail-actions");
+const detailTabs = document.querySelectorAll(".detail-tab");
+const detailPanelOverview = document.getElementById("detail-panel-overview");
+const detailPanelMembers = document.getElementById("detail-panel-members");
 const detailDescription = document.getElementById("detail-description");
 const detailMeeting = document.getElementById("detail-meeting");
+const detailRequestsSection = document.getElementById("detail-requests-section");
+const detailRequestsList = document.getElementById("detail-requests-list");
+const detailMembersList = document.getElementById("detail-members-list");
+const detailMembersEmpty = document.getElementById("detail-members-empty");
 
 const toast = document.getElementById("toast");
 const fabCreateClub = document.getElementById("fab-create-club");
 const modalOverlay = document.getElementById("modal-overlay");
+const modalTitle = document.getElementById("modal-title");
+const modalSubmitBtn = document.getElementById("modal-submit-btn");
 const modalCloseBtn = document.getElementById("modal-close-btn");
 const modalCancelBtn = document.getElementById("modal-cancel-btn");
 const formCreateClub = document.getElementById("form-create-club");
@@ -138,6 +155,17 @@ resendCodeBtn.addEventListener("click", async () => {
   }, 1000);
 });
 
+// ---------- account type toggle ----------
+
+const accountTypeButtons = document.querySelectorAll(".account-type-btn");
+accountTypeButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    accountTypeButtons.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    selectedAccountType = btn.dataset.accountType;
+  });
+});
+
 // ---------- register ----------
 
 formRegister.addEventListener("submit", async (e) => {
@@ -150,7 +178,7 @@ formRegister.addEventListener("submit", async (e) => {
   const password = document.getElementById("reg-password").value;
   const passwordConfirm = document.getElementById("reg-password-confirm").value;
 
-  if (!email.endsWith(SCHOOL_EMAIL_DOMAIN)) {
+  if (ENFORCE_SCHOOL_EMAIL_DOMAIN && !email.endsWith(SCHOOL_EMAIL_DOMAIN)) {
     registerError.textContent = `Email must end with ${SCHOOL_EMAIL_DOMAIN}`;
     return;
   }
@@ -162,7 +190,13 @@ formRegister.addEventListener("submit", async (e) => {
   const { error } = await supabaseClient.auth.signUp({
     email,
     password,
-    options: { data: { first_name: firstName, last_name: lastName } },
+    options: {
+      data: {
+        first_name: firstName,
+        last_name: lastName,
+        account_type: selectedAccountType,
+      },
+    },
   });
   if (error) {
     registerError.textContent = error.message;
@@ -216,6 +250,7 @@ async function afterAuthSuccess() {
     lastName: profile.last_name,
     email: profile.email,
     role: profile.role,
+    accountType: profile.account_type,
   };
 
   if (currentUser.role === "admin") {
@@ -269,19 +304,212 @@ function showClubList() {
   renderClubs();
 }
 
-function showClubDetail(club) {
+let currentClubDetail = null;
+
+async function showClubDetail(club) {
+  currentClubDetail = club;
   viewClubList.classList.remove("active");
   viewClubDetail.classList.add("active");
 
+  detailTabs.forEach(t => t.classList.toggle("active", t.dataset.detailTab === "overview"));
+  detailPanelOverview.classList.add("active");
+  detailPanelMembers.classList.remove("active");
+
+  detailBanner.dataset.category = club.category;
+  detailLogo.textContent = club.name.slice(0, 2).toUpperCase();
   detailCategory.textContent = club.category;
   detailCategory.dataset.category = club.category;
   detailName.textContent = club.name;
   detailMeta.textContent = `Created by ${club.createdByName}`;
   detailDescription.textContent = club.description;
   detailMeeting.textContent = club.meeting || "Not specified";
+
+  detailActions.innerHTML = "";
+  detailMembersList.innerHTML = "";
+  detailRequestsList.innerHTML = "";
+  detailRequestsSection.hidden = true;
+
+  await loadClubMembership(club);
 }
 
 detailBackBtn.addEventListener("click", showClubList);
+
+detailTabs.forEach(tab => {
+  tab.addEventListener("click", () => {
+    detailTabs.forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    const target = tab.dataset.detailTab;
+    detailPanelOverview.classList.toggle("active", target === "overview");
+    detailPanelMembers.classList.toggle("active", target === "members");
+  });
+});
+
+// ---------- club membership ----------
+
+async function loadClubMembership(club) {
+  const isOwner = currentUser.id === club.created_by;
+
+  const { data: memberRows, error } = await supabaseClient
+    .from("club_members")
+    .select("*, profile:profiles(first_name, last_name)")
+    .eq("club_id", club.id);
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  const approved = memberRows.filter(m => m.status === "approved");
+  const myRow = memberRows.find(m => m.user_id === currentUser.id);
+
+  detailMeta.textContent = `Created by ${club.createdByName} · ${approved.length} member${approved.length === 1 ? "" : "s"}`;
+
+  renderDetailActions(club, isOwner, myRow);
+  renderMembersList(approved, club.created_by);
+  detailMembersEmpty.hidden = approved.length !== 0;
+
+  if (isOwner) {
+    const pending = memberRows.filter(m => m.status === "pending");
+    detailRequestsSection.hidden = pending.length === 0;
+    renderRequestsList(pending, club);
+  } else {
+    detailRequestsSection.hidden = true;
+  }
+}
+
+function renderDetailActions(club, isOwner, myRow) {
+  detailActions.innerHTML = "";
+
+  if (isOwner) {
+    const editBtn = document.createElement("button");
+    editBtn.className = "btn btn-secondary btn-sm";
+    editBtn.textContent = "Edit Club";
+    editBtn.addEventListener("click", () => openEditClubModal(club));
+    detailActions.appendChild(editBtn);
+    return;
+  }
+
+  if (!myRow) {
+    const applyBtn = document.createElement("button");
+    applyBtn.className = "btn btn-primary btn-sm";
+    applyBtn.textContent = "Apply to Join";
+    applyBtn.addEventListener("click", () => applyToClub(club));
+    detailActions.appendChild(applyBtn);
+    return;
+  }
+
+  if (myRow.status === "pending") {
+    const pill = document.createElement("span");
+    pill.className = "pill pill-pending";
+    pill.textContent = "Application Pending";
+    detailActions.appendChild(pill);
+
+    const withdrawBtn = document.createElement("button");
+    withdrawBtn.className = "btn btn-secondary btn-sm";
+    withdrawBtn.textContent = "Withdraw";
+    withdrawBtn.addEventListener("click", () => withdrawApplication(myRow.id, club));
+    detailActions.appendChild(withdrawBtn);
+    return;
+  }
+
+  const pill = document.createElement("span");
+  pill.className = "pill pill-member";
+  pill.textContent = "Member";
+  detailActions.appendChild(pill);
+
+  const leaveBtn = document.createElement("button");
+  leaveBtn.className = "btn btn-secondary btn-sm";
+  leaveBtn.textContent = "Leave";
+  leaveBtn.addEventListener("click", () => leaveClub(myRow.id, club));
+  detailActions.appendChild(leaveBtn);
+}
+
+function renderMembersList(approved, ownerId) {
+  detailMembersList.innerHTML = "";
+  approved
+    .slice()
+    .sort((a, b) => (a.user_id === ownerId ? -1 : b.user_id === ownerId ? 1 : 0))
+    .forEach(m => {
+      const name = `${m.profile.first_name} ${m.profile.last_name}`;
+      const initials = (m.profile.first_name[0] || "") + (m.profile.last_name[0] || "");
+      const row = document.createElement("div");
+      row.className = "member-row";
+      row.innerHTML = `
+        <div class="member-row-name">
+          <span class="member-row-avatar">${escapeHtml(initials.toUpperCase())}</span>
+          ${escapeHtml(name)}
+        </div>
+        ${m.user_id === ownerId ? '<span class="member-owner-tag">Owner</span>' : ""}
+      `;
+      detailMembersList.appendChild(row);
+    });
+}
+
+function renderRequestsList(pending, club) {
+  detailRequestsList.innerHTML = "";
+  pending.forEach(m => {
+    const name = `${m.profile.first_name} ${m.profile.last_name}`;
+    const row = document.createElement("div");
+    row.className = "member-row";
+    row.innerHTML = `
+      <div class="member-row-name">${escapeHtml(name)}</div>
+      <div class="member-row-actions">
+        <button class="btn-approve" data-approve-member-id="${m.id}">Approve</button>
+        <button class="btn-danger" data-reject-member-id="${m.id}">Reject</button>
+      </div>
+    `;
+    detailRequestsList.appendChild(row);
+  });
+
+  detailRequestsList.querySelectorAll("[data-approve-member-id]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      const { error } = await supabaseClient
+        .from("club_members")
+        .update({ status: "approved", decided_at: new Date().toISOString() })
+        .eq("id", btn.dataset.approveMemberId);
+      if (error) { showToast(error.message); btn.disabled = false; return; }
+      await loadClubMembership(club);
+    });
+  });
+
+  detailRequestsList.querySelectorAll("[data-reject-member-id]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      const { error } = await supabaseClient.from("club_members").delete().eq("id", btn.dataset.rejectMemberId);
+      if (error) { showToast(error.message); btn.disabled = false; return; }
+      await loadClubMembership(club);
+    });
+  });
+}
+
+async function applyToClub(club) {
+  const { error } = await supabaseClient.from("club_members").insert({
+    club_id: club.id,
+    user_id: currentUser.id,
+    status: "pending",
+  });
+  if (error) {
+    showToast(error.message);
+    return;
+  }
+  showToast("Application sent! The club owner will review it.");
+  await loadClubMembership(club);
+}
+
+async function withdrawApplication(rowId, club) {
+  const { error } = await supabaseClient.from("club_members").delete().eq("id", rowId);
+  if (error) { showToast(error.message); return; }
+  await loadClubMembership(club);
+}
+
+async function leaveClub(rowId, club) {
+  if (!confirm(`Leave ${club.name}?`)) return;
+  const { error } = await supabaseClient.from("club_members").delete().eq("id", rowId);
+  if (error) { showToast(error.message); return; }
+  showToast(`You left ${club.name}.`);
+  await loadClubMembership(club);
+}
 
 async function renderClubs() {
   const { data: clubs, error } = await supabaseClient
@@ -321,17 +549,35 @@ function escapeHtml(str) {
 
 // ---------- create club modal ----------
 
-function openModal() {
+let editingClubId = null;
+
+function openCreateClubModal() {
+  editingClubId = null;
+  modalTitle.textContent = "Create a new club";
+  modalSubmitBtn.textContent = "Create club";
   createClubError.textContent = "";
   formCreateClub.reset();
   modalOverlay.classList.add("open");
 }
 
-function closeModal() {
-  modalOverlay.classList.remove("open");
+function openEditClubModal(club) {
+  editingClubId = club.id;
+  modalTitle.textContent = "Edit club";
+  modalSubmitBtn.textContent = "Save changes";
+  createClubError.textContent = "";
+  document.getElementById("club-name").value = club.name;
+  document.getElementById("club-category").value = club.category;
+  document.getElementById("club-description").value = club.description;
+  document.getElementById("club-meeting").value = club.meeting || "";
+  modalOverlay.classList.add("open");
 }
 
-fabCreateClub.addEventListener("click", openModal);
+function closeModal() {
+  modalOverlay.classList.remove("open");
+  editingClubId = null;
+}
+
+fabCreateClub.addEventListener("click", openCreateClubModal);
 modalCloseBtn.addEventListener("click", closeModal);
 modalCancelBtn.addEventListener("click", closeModal);
 modalOverlay.addEventListener("click", (e) => {
@@ -352,16 +598,30 @@ formCreateClub.addEventListener("submit", async (e) => {
     return;
   }
 
-  const {
-    data: { user },
-  } = await supabaseClient.auth.getUser();
+  if (editingClubId) {
+    const { error } = await supabaseClient
+      .from("clubs")
+      .update({ name, category, description, meeting })
+      .eq("id", editingClubId);
+
+    if (error) {
+      createClubError.textContent = error.message;
+      return;
+    }
+
+    const updatedClub = { ...currentClubDetail, name, category, description, meeting };
+    closeModal();
+    showToast("Club updated.");
+    await showClubDetail(updatedClub);
+    return;
+  }
 
   const { error } = await supabaseClient.from("clubs").insert({
     name,
     category,
     description,
     meeting,
-    created_by: user.id,
+    created_by: currentUser.id,
     status: "pending",
   });
 
