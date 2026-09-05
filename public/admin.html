@@ -46,6 +46,27 @@
   </div>
 
   <section class="admin-section">
+    <div class="admin-section-header">
+      <h2>Announcements</h2>
+      <button class="btn btn-primary btn-sm" id="new-announcement-btn">+ New Announcement</button>
+    </div>
+    <div class="table-wrap">
+      <table class="admin-table" id="announcements-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Event date</th>
+            <th>Posted</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="announcements-tbody"></tbody>
+      </table>
+      <p class="empty-state" id="announcements-empty" hidden>No announcements yet.</p>
+    </div>
+  </section>
+
+  <section class="admin-section">
     <h2>Pending Club Requests</h2>
     <div class="table-wrap">
       <table class="admin-table" id="pending-table">
@@ -105,6 +126,35 @@
   </section>
 
 </main>
+
+<!-- ===================== ANNOUNCEMENT MODAL ===================== -->
+<div id="announcement-modal-overlay" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>New announcement</h2>
+      <button class="modal-close" id="announcement-modal-close-btn">&times;</button>
+    </div>
+    <form id="form-announcement">
+      <div class="field">
+        <label for="announcement-title">Title</label>
+        <input type="text" id="announcement-title" required>
+      </div>
+      <div class="field">
+        <label for="announcement-date">Event date &amp; time (optional)</label>
+        <input type="datetime-local" id="announcement-date">
+      </div>
+      <div class="field">
+        <label for="announcement-description">Description</label>
+        <textarea id="announcement-description" rows="3"></textarea>
+      </div>
+      <p class="form-error" id="announcement-error"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="announcement-modal-cancel-btn">Cancel</button>
+        <button type="submit" class="btn btn-primary">Post announcement</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>

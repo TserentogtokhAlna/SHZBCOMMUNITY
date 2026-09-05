@@ -786,10 +786,94 @@ input, textarea, select {
   line-height: 1.6;
 }
 
-.members-list {
+.members-list,
+.events-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.event-card {
+  padding: 14px 16px;
+  background: rgba(0, 246, 255, 0.04);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.event-card-info h4 {
+  margin: 0 0 4px;
+  color: var(--text-bright);
+  font-size: 14.5px;
+}
+
+.event-card-date {
+  font-family: "Share Tech Mono", monospace;
+  font-size: 12px;
+  color: var(--neon-cyan);
+  margin: 0 0 6px;
+}
+
+.event-card-description {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.event-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.announcements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 32px;
+}
+
+.announcement-card {
+  padding: 16px 18px;
+  background: linear-gradient(135deg, rgba(255, 225, 77, 0.08), rgba(255, 43, 214, 0.06));
+  border: 1px solid rgba(255, 225, 77, 0.35);
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.announcement-card-info h4 {
+  margin: 0 0 4px;
+  color: var(--text-bright);
+  font-size: 15px;
+}
+
+.announcement-card-date {
+  font-family: "Share Tech Mono", monospace;
+  font-size: 12px;
+  color: var(--neon-yellow);
+  margin: 0 0 6px;
+}
+
+.announcement-card-description {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+#detail-panel-manage h3:first-of-type {
+  margin-top: 0;
+}
+
+#detail-panel-manage .btn {
+  margin-bottom: 20px;
 }
 
 .member-row {

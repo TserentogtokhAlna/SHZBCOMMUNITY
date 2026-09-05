@@ -113,6 +113,13 @@
 
     <!-- Club list -->
     <section id="view-club-list" class="view-panel active">
+      <div id="announcements-section" hidden>
+        <div class="panel-heading">
+          <h2>Announcements</h2>
+        </div>
+        <div id="announcements-list" class="announcements-list"></div>
+      </div>
+
       <div class="panel-heading">
         <h2>All Clubs</h2>
         <p class="panel-subtext">Browse clubs created by students at Shine Zuun Bileg</p>
@@ -144,6 +151,8 @@
         <div class="club-detail-tabs">
           <button class="detail-tab active" data-detail-tab="overview">Overview</button>
           <button class="detail-tab" data-detail-tab="members">Members</button>
+          <button class="detail-tab" data-detail-tab="events">Events</button>
+          <button class="detail-tab" data-detail-tab="manage" id="manage-tab-btn" hidden>Manage</button>
         </div>
 
         <div class="club-detail-panel active" id="detail-panel-overview">
@@ -154,13 +163,28 @@
         </div>
 
         <div class="club-detail-panel" id="detail-panel-members">
-          <div id="detail-requests-section" hidden>
-            <h3>Pending Requests</h3>
-            <div id="detail-requests-list" class="members-list"></div>
-          </div>
           <h3>Members</h3>
           <div id="detail-members-list" class="members-list"></div>
           <p class="empty-state" id="detail-members-empty" hidden>No members yet.</p>
+        </div>
+
+        <div class="club-detail-panel" id="detail-panel-events">
+          <h3>Upcoming &amp; Past Events</h3>
+          <div id="detail-events-list" class="events-list"></div>
+          <p class="empty-state" id="detail-events-empty" hidden>No events yet.</p>
+        </div>
+
+        <div class="club-detail-panel" id="detail-panel-manage">
+          <h3>Club Info</h3>
+          <button class="btn btn-secondary btn-sm" id="manage-edit-club-btn">Edit Club Info</button>
+
+          <h3>Pending Requests</h3>
+          <div id="manage-requests-list" class="members-list"></div>
+          <p class="empty-state" id="manage-requests-empty" hidden>No pending requests.</p>
+
+          <h3>Manage Events</h3>
+          <button class="btn btn-secondary btn-sm" id="manage-add-event-btn">+ Add Event</button>
+          <div id="manage-events-list" class="events-list"></div>
         </div>
       </div>
     </section>
@@ -209,6 +233,35 @@
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
         <button type="submit" class="btn btn-primary" id="modal-submit-btn">Create club</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== EVENT MODAL ===================== -->
+<div id="event-modal-overlay" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="event-modal-title">Add an event</h2>
+      <button class="modal-close" id="event-modal-close-btn">&times;</button>
+    </div>
+    <form id="form-event">
+      <div class="field">
+        <label for="event-title">Event title</label>
+        <input type="text" id="event-title" required>
+      </div>
+      <div class="field">
+        <label for="event-date">Date &amp; time</label>
+        <input type="datetime-local" id="event-date" required>
+      </div>
+      <div class="field">
+        <label for="event-description">Description</label>
+        <textarea id="event-description" rows="3"></textarea>
+      </div>
+      <p class="form-error" id="event-error"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="event-modal-cancel-btn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="event-modal-submit-btn">Add event</button>
       </div>
     </form>
   </div>

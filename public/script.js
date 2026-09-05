@@ -49,12 +49,32 @@ const detailActions = document.getElementById("detail-actions");
 const detailTabs = document.querySelectorAll(".detail-tab");
 const detailPanelOverview = document.getElementById("detail-panel-overview");
 const detailPanelMembers = document.getElementById("detail-panel-members");
+const detailPanelEvents = document.getElementById("detail-panel-events");
+const detailPanelManage = document.getElementById("detail-panel-manage");
+const manageTabBtn = document.getElementById("manage-tab-btn");
 const detailDescription = document.getElementById("detail-description");
 const detailMeeting = document.getElementById("detail-meeting");
-const detailRequestsSection = document.getElementById("detail-requests-section");
-const detailRequestsList = document.getElementById("detail-requests-list");
 const detailMembersList = document.getElementById("detail-members-list");
 const detailMembersEmpty = document.getElementById("detail-members-empty");
+const detailEventsList = document.getElementById("detail-events-list");
+const detailEventsEmpty = document.getElementById("detail-events-empty");
+
+const manageEditClubBtn = document.getElementById("manage-edit-club-btn");
+const manageRequestsList = document.getElementById("manage-requests-list");
+const manageRequestsEmpty = document.getElementById("manage-requests-empty");
+const manageAddEventBtn = document.getElementById("manage-add-event-btn");
+const manageEventsList = document.getElementById("manage-events-list");
+
+const announcementsSection = document.getElementById("announcements-section");
+const announcementsList = document.getElementById("announcements-list");
+
+const eventModalOverlay = document.getElementById("event-modal-overlay");
+const eventModalTitle = document.getElementById("event-modal-title");
+const eventModalCloseBtn = document.getElementById("event-modal-close-btn");
+const eventModalCancelBtn = document.getElementById("event-modal-cancel-btn");
+const eventModalSubmitBtn = document.getElementById("event-modal-submit-btn");
+const formEvent = document.getElementById("form-event");
+const eventError = document.getElementById("event-error");
 
 const toast = document.getElementById("toast");
 const fabCreateClub = document.getElementById("fab-create-club");
@@ -302,9 +322,11 @@ function showClubList() {
   viewClubList.classList.add("active");
   viewClubDetail.classList.remove("active");
   renderClubs();
+  loadAnnouncements();
 }
 
 let currentClubDetail = null;
+let currentClubIsOwner = false;
 
 async function showClubDetail(club) {
   currentClubDetail = club;
@@ -314,6 +336,8 @@ async function showClubDetail(club) {
   detailTabs.forEach(t => t.classList.toggle("active", t.dataset.detailTab === "overview"));
   detailPanelOverview.classList.add("active");
   detailPanelMembers.classList.remove("active");
+  detailPanelEvents.classList.remove("active");
+  detailPanelManage.classList.remove("active");
 
   detailBanner.dataset.category = club.category;
   detailLogo.textContent = club.name.slice(0, 2).toUpperCase();
@@ -326,10 +350,13 @@ async function showClubDetail(club) {
 
   detailActions.innerHTML = "";
   detailMembersList.innerHTML = "";
-  detailRequestsList.innerHTML = "";
-  detailRequestsSection.hidden = true;
+  detailEventsList.innerHTML = "";
+  manageRequestsList.innerHTML = "";
+  manageEventsList.innerHTML = "";
+  manageTabBtn.hidden = true;
 
   await loadClubMembership(club);
+  await loadClubEvents(club);
 }
 
 detailBackBtn.addEventListener("click", showClubList);
@@ -341,6 +368,8 @@ detailTabs.forEach(tab => {
     const target = tab.dataset.detailTab;
     detailPanelOverview.classList.toggle("active", target === "overview");
     detailPanelMembers.classList.toggle("active", target === "members");
+    detailPanelEvents.classList.toggle("active", target === "events");
+    detailPanelManage.classList.toggle("active", target === "manage");
   });
 });
 
@@ -348,6 +377,8 @@ detailTabs.forEach(tab => {
 
 async function loadClubMembership(club) {
   const isOwner = currentUser.id === club.created_by;
+  currentClubIsOwner = isOwner;
+  manageTabBtn.hidden = !isOwner;
 
   const { data: memberRows, error } = await supabaseClient
     .from("club_members")
@@ -370,10 +401,7 @@ async function loadClubMembership(club) {
 
   if (isOwner) {
     const pending = memberRows.filter(m => m.status === "pending");
-    detailRequestsSection.hidden = pending.length === 0;
     renderRequestsList(pending, club);
-  } else {
-    detailRequestsSection.hidden = true;
   }
 }
 
@@ -381,11 +409,10 @@ function renderDetailActions(club, isOwner, myRow) {
   detailActions.innerHTML = "";
 
   if (isOwner) {
-    const editBtn = document.createElement("button");
-    editBtn.className = "btn btn-secondary btn-sm";
-    editBtn.textContent = "Edit Club";
-    editBtn.addEventListener("click", () => openEditClubModal(club));
-    detailActions.appendChild(editBtn);
+    const pill = document.createElement("span");
+    pill.className = "pill pill-member";
+    pill.textContent = "Your Club";
+    detailActions.appendChild(pill);
     return;
   }
 
@@ -446,7 +473,9 @@ function renderMembersList(approved, ownerId) {
 }
 
 function renderRequestsList(pending, club) {
-  detailRequestsList.innerHTML = "";
+  manageRequestsList.innerHTML = "";
+  manageRequestsEmpty.hidden = pending.length !== 0;
+
   pending.forEach(m => {
     const name = `${m.profile.first_name} ${m.profile.last_name}`;
     const row = document.createElement("div");
@@ -458,10 +487,10 @@ function renderRequestsList(pending, club) {
         <button class="btn-danger" data-reject-member-id="${m.id}">Reject</button>
       </div>
     `;
-    detailRequestsList.appendChild(row);
+    manageRequestsList.appendChild(row);
   });
 
-  detailRequestsList.querySelectorAll("[data-approve-member-id]").forEach(btn => {
+  manageRequestsList.querySelectorAll("[data-approve-member-id]").forEach(btn => {
     btn.addEventListener("click", async () => {
       btn.disabled = true;
       const { error } = await supabaseClient
@@ -473,7 +502,7 @@ function renderRequestsList(pending, club) {
     });
   });
 
-  detailRequestsList.querySelectorAll("[data-reject-member-id]").forEach(btn => {
+  manageRequestsList.querySelectorAll("[data-reject-member-id]").forEach(btn => {
     btn.addEventListener("click", async () => {
       btn.disabled = true;
       const { error } = await supabaseClient.from("club_members").delete().eq("id", btn.dataset.rejectMemberId);
@@ -482,6 +511,8 @@ function renderRequestsList(pending, club) {
     });
   });
 }
+
+manageEditClubBtn.addEventListener("click", () => openEditClubModal(currentClubDetail));
 
 async function applyToClub(club) {
   const { error } = await supabaseClient.from("club_members").insert({
@@ -509,6 +540,186 @@ async function leaveClub(rowId, club) {
   if (error) { showToast(error.message); return; }
   showToast(`You left ${club.name}.`);
   await loadClubMembership(club);
+}
+
+// ---------- club events ----------
+
+function formatEventDate(iso) {
+  return new Date(iso).toLocaleString(undefined, {
+    year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+  });
+}
+
+async function loadClubEvents(club) {
+  const { data: events, error } = await supabaseClient
+    .from("club_events")
+    .select("*")
+    .eq("club_id", club.id)
+    .order("event_date", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  detailEventsList.innerHTML = "";
+  detailEventsEmpty.hidden = events.length !== 0;
+  events.forEach(ev => {
+    const card = document.createElement("div");
+    card.className = "event-card";
+    card.innerHTML = `
+      <div class="event-card-info">
+        <h4>${escapeHtml(ev.title)}</h4>
+        <p class="event-card-date">${formatEventDate(ev.event_date)}</p>
+        <p class="event-card-description">${escapeHtml(ev.description || "")}</p>
+      </div>
+    `;
+    detailEventsList.appendChild(card);
+  });
+
+  if (currentClubIsOwner) {
+    manageEventsList.innerHTML = "";
+    events.forEach(ev => {
+      const card = document.createElement("div");
+      card.className = "event-card";
+      card.innerHTML = `
+        <div class="event-card-info">
+          <h4>${escapeHtml(ev.title)}</h4>
+          <p class="event-card-date">${formatEventDate(ev.event_date)}</p>
+          <p class="event-card-description">${escapeHtml(ev.description || "")}</p>
+        </div>
+        <div class="event-card-actions">
+          <button class="btn btn-secondary btn-sm" data-edit-event-id="${ev.id}">Edit</button>
+          <button class="btn-danger" data-delete-event-id="${ev.id}">Delete</button>
+        </div>
+      `;
+      manageEventsList.appendChild(card);
+    });
+
+    manageEventsList.querySelectorAll("[data-edit-event-id]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const ev = events.find(e => e.id === btn.dataset.editEventId);
+        openEditEventModal(club, ev);
+      });
+    });
+
+    manageEventsList.querySelectorAll("[data-delete-event-id]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Delete this event?")) return;
+        btn.disabled = true;
+        const { error: delError } = await supabaseClient
+          .from("club_events")
+          .delete()
+          .eq("id", btn.dataset.deleteEventId);
+        if (delError) { showToast(delError.message); btn.disabled = false; return; }
+        await loadClubEvents(club);
+      });
+    });
+  }
+}
+
+let editingEventId = null;
+
+function openAddEventModal() {
+  editingEventId = null;
+  eventModalTitle.textContent = "Add an event";
+  eventModalSubmitBtn.textContent = "Add event";
+  eventError.textContent = "";
+  formEvent.reset();
+  eventModalOverlay.classList.add("open");
+}
+
+function openEditEventModal(club, ev) {
+  editingEventId = ev.id;
+  eventModalTitle.textContent = "Edit event";
+  eventModalSubmitBtn.textContent = "Save changes";
+  eventError.textContent = "";
+  document.getElementById("event-title").value = ev.title;
+  document.getElementById("event-description").value = ev.description || "";
+  const local = new Date(ev.event_date);
+  local.setMinutes(local.getMinutes() - local.getTimezoneOffset());
+  document.getElementById("event-date").value = local.toISOString().slice(0, 16);
+  eventModalOverlay.classList.add("open");
+}
+
+function closeEventModal() {
+  eventModalOverlay.classList.remove("open");
+  editingEventId = null;
+}
+
+manageAddEventBtn.addEventListener("click", openAddEventModal);
+eventModalCloseBtn.addEventListener("click", closeEventModal);
+eventModalCancelBtn.addEventListener("click", closeEventModal);
+eventModalOverlay.addEventListener("click", (e) => {
+  if (e.target === eventModalOverlay) closeEventModal();
+});
+
+formEvent.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  eventError.textContent = "";
+
+  const title = document.getElementById("event-title").value.trim();
+  const dateValue = document.getElementById("event-date").value;
+  const description = document.getElementById("event-description").value.trim();
+
+  if (!title || !dateValue) {
+    eventError.textContent = "Please fill in the required fields.";
+    return;
+  }
+
+  const eventDate = new Date(dateValue).toISOString();
+
+  if (editingEventId) {
+    const { error } = await supabaseClient
+      .from("club_events")
+      .update({ title, description, event_date: eventDate })
+      .eq("id", editingEventId);
+    if (error) { eventError.textContent = error.message; return; }
+    showToast("Event updated.");
+  } else {
+    const { error } = await supabaseClient.from("club_events").insert({
+      club_id: currentClubDetail.id,
+      title,
+      description,
+      event_date: eventDate,
+      created_by: currentUser.id,
+    });
+    if (error) { eventError.textContent = error.message; return; }
+    showToast("Event added.");
+  }
+
+  closeEventModal();
+  await loadClubEvents(currentClubDetail);
+});
+
+// ---------- announcements ----------
+
+async function loadAnnouncements() {
+  const { data: announcements, error } = await supabaseClient
+    .from("announcements")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  announcementsSection.hidden = announcements.length === 0;
+  announcementsList.innerHTML = "";
+
+  announcements.forEach(a => {
+    const card = document.createElement("div");
+    card.className = "announcement-card";
+    card.innerHTML = `
+      <div class="announcement-card-info">
+        <h4>${escapeHtml(a.title)}</h4>
+        ${a.event_date ? `<p class="announcement-card-date">${formatEventDate(a.event_date)}</p>` : ""}
+        <p class="announcement-card-description">${escapeHtml(a.description || "")}</p>
+      </div>
+    `;
+    announcementsList.appendChild(card);
+  });
 }
 
 async function renderClubs() {

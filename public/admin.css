@@ -100,6 +100,17 @@
   color: var(--text-bright);
 }
 
+.admin-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.admin-section-header h2 {
+  margin: 0;
+}
+
 .table-wrap {
   background: var(--bg-panel);
   backdrop-filter: blur(10px);

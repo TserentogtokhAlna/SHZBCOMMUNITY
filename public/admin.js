@@ -17,6 +17,15 @@ const clubsEmpty = document.getElementById("clubs-empty");
 const usersTbody = document.getElementById("users-tbody");
 const usersEmpty = document.getElementById("users-empty");
 
+const announcementsTbody = document.getElementById("announcements-tbody");
+const announcementsEmpty = document.getElementById("announcements-empty");
+const newAnnouncementBtn = document.getElementById("new-announcement-btn");
+const announcementModalOverlay = document.getElementById("announcement-modal-overlay");
+const announcementModalCloseBtn = document.getElementById("announcement-modal-close-btn");
+const announcementModalCancelBtn = document.getElementById("announcement-modal-cancel-btn");
+const formAnnouncement = document.getElementById("form-announcement");
+const announcementError = document.getElementById("announcement-error");
+
 profileBtn.addEventListener("click", (e) => {
   e.stopPropagation();
   profileMenu.classList.toggle("open");
@@ -39,6 +48,103 @@ function formatDate(iso) {
     year: "numeric", month: "short", day: "numeric",
   });
 }
+
+function formatDateTime(iso) {
+  return new Date(iso).toLocaleString(undefined, {
+    year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+  });
+}
+
+// ---------- announcements ----------
+
+async function loadAnnouncements() {
+  const { data: announcements, error } = await supabaseClient
+    .from("announcements")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) { console.error(error); return; }
+
+  announcementsTbody.innerHTML = "";
+
+  if (announcements.length === 0) {
+    announcementsEmpty.hidden = false;
+    return;
+  }
+  announcementsEmpty.hidden = true;
+
+  announcements.forEach(a => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(a.title)}</strong><br><span class="row-subtext">${escapeHtml((a.description || "").slice(0, 80))}</span></td>
+      <td>${a.event_date ? formatDateTime(a.event_date) : "—"}</td>
+      <td>${formatDate(a.created_at)}</td>
+      <td><button class="btn-danger" data-announcement-id="${a.id}">Delete</button></td>
+    `;
+    announcementsTbody.appendChild(tr);
+  });
+
+  announcementsTbody.querySelectorAll("[data-announcement-id]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("Delete this announcement?")) return;
+      btn.disabled = true;
+      const { error: delError } = await supabaseClient
+        .from("announcements")
+        .delete()
+        .eq("id", btn.dataset.announcementId);
+      if (delError) { alert(delError.message); btn.disabled = false; return; }
+      await loadAnnouncements();
+    });
+  });
+}
+
+function openAnnouncementModal() {
+  announcementError.textContent = "";
+  formAnnouncement.reset();
+  announcementModalOverlay.classList.add("open");
+}
+
+function closeAnnouncementModal() {
+  announcementModalOverlay.classList.remove("open");
+}
+
+newAnnouncementBtn.addEventListener("click", openAnnouncementModal);
+announcementModalCloseBtn.addEventListener("click", closeAnnouncementModal);
+announcementModalCancelBtn.addEventListener("click", closeAnnouncementModal);
+announcementModalOverlay.addEventListener("click", (e) => {
+  if (e.target === announcementModalOverlay) closeAnnouncementModal();
+});
+
+formAnnouncement.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  announcementError.textContent = "";
+
+  const title = document.getElementById("announcement-title").value.trim();
+  const dateValue = document.getElementById("announcement-date").value;
+  const description = document.getElementById("announcement-description").value.trim();
+
+  if (!title) {
+    announcementError.textContent = "Title is required.";
+    return;
+  }
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+
+  const { error } = await supabaseClient.from("announcements").insert({
+    title,
+    description,
+    event_date: dateValue ? new Date(dateValue).toISOString() : null,
+    created_by: session.user.id,
+  });
+
+  if (error) {
+    announcementError.textContent = error.message;
+    return;
+  }
+
+  closeAnnouncementModal();
+  await loadAnnouncements();
+});
 
 async function loadPendingClubs() {
   const { data: clubs, error } = await supabaseClient
@@ -231,7 +337,7 @@ async function deleteUserAccount(userId) {
 }
 
 async function refresh() {
-  await Promise.all([loadPendingClubs(), loadClubs(), loadUsers()]);
+  await Promise.all([loadAnnouncements(), loadPendingClubs(), loadClubs(), loadUsers()]);
 }
 
 (async function boot() {
