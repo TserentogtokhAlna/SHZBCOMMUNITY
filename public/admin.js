@@ -12,13 +12,17 @@ const statPending = document.getElementById("stat-pending");
 
 const pendingTbody = document.getElementById("pending-tbody");
 const pendingEmpty = document.getElementById("pending-empty");
+const pendingSearchInput = document.getElementById("pending-search");
 const clubsTbody = document.getElementById("clubs-tbody");
 const clubsEmpty = document.getElementById("clubs-empty");
+const clubsSearchInput = document.getElementById("clubs-search");
 const usersTbody = document.getElementById("users-tbody");
 const usersEmpty = document.getElementById("users-empty");
+const usersSearchInput = document.getElementById("users-search");
 
 const announcementsTbody = document.getElementById("announcements-tbody");
 const announcementsEmpty = document.getElementById("announcements-empty");
+const announcementsSearchInput = document.getElementById("announcements-search");
 const newAnnouncementBtn = document.getElementById("new-announcement-btn");
 const announcementModalOverlay = document.getElementById("announcement-modal-overlay");
 const announcementModalCloseBtn = document.getElementById("announcement-modal-close-btn");
@@ -57,6 +61,8 @@ function formatDateTime(iso) {
 
 // ---------- announcements ----------
 
+let announcementsCache = [];
+
 async function loadAnnouncements() {
   const { data: announcements, error } = await supabaseClient
     .from("announcements")
@@ -64,16 +70,25 @@ async function loadAnnouncements() {
     .order("created_at", { ascending: false });
 
   if (error) { console.error(error); return; }
+  announcementsCache = announcements;
+  renderAnnouncementsTable();
+}
+
+function renderAnnouncementsTable() {
+  const term = announcementsSearchInput.value.trim().toLowerCase();
+  const rows = term
+    ? announcementsCache.filter(a => a.title.toLowerCase().includes(term) || (a.description || "").toLowerCase().includes(term))
+    : announcementsCache;
 
   announcementsTbody.innerHTML = "";
 
-  if (announcements.length === 0) {
+  if (rows.length === 0) {
     announcementsEmpty.hidden = false;
     return;
   }
   announcementsEmpty.hidden = true;
 
-  announcements.forEach(a => {
+  rows.forEach(a => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td><strong>${escapeHtml(a.title)}</strong><br><span class="row-subtext">${escapeHtml((a.description || "").slice(0, 80))}</span></td>
@@ -97,6 +112,8 @@ async function loadAnnouncements() {
     });
   });
 }
+
+announcementsSearchInput.addEventListener("input", renderAnnouncementsTable);
 
 function openAnnouncementModal() {
   announcementError.textContent = "";
@@ -146,6 +163,10 @@ formAnnouncement.addEventListener("submit", async (e) => {
   await loadAnnouncements();
 });
 
+// ---------- pending clubs ----------
+
+let pendingClubsCache = [];
+
 async function loadPendingClubs() {
   const { data: clubs, error } = await supabaseClient
     .from("clubs")
@@ -154,17 +175,29 @@ async function loadPendingClubs() {
     .order("created_at", { ascending: true });
 
   if (error) { console.error(error); return; }
-
   statPending.textContent = clubs.length;
+  pendingClubsCache = clubs;
+  renderPendingTable();
+}
+
+function renderPendingTable() {
+  const term = pendingSearchInput.value.trim().toLowerCase();
+  const rows = term
+    ? pendingClubsCache.filter(c =>
+        c.name.toLowerCase().includes(term) ||
+        c.category.toLowerCase().includes(term) ||
+        `${c.creator.first_name} ${c.creator.last_name}`.toLowerCase().includes(term))
+    : pendingClubsCache;
+
   pendingTbody.innerHTML = "";
 
-  if (clubs.length === 0) {
+  if (rows.length === 0) {
     pendingEmpty.hidden = false;
     return;
   }
   pendingEmpty.hidden = true;
 
-  clubs.forEach(club => {
+  rows.forEach(club => {
     const createdByName = `${club.creator.first_name} ${club.creator.last_name}`;
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -198,7 +231,7 @@ async function loadPendingClubs() {
 
   pendingTbody.querySelectorAll("[data-reject-id]").forEach(btn => {
     btn.addEventListener("click", async () => {
-      const club = clubs.find(c => c.id === btn.dataset.rejectId);
+      const club = pendingClubsCache.find(c => c.id === btn.dataset.rejectId);
       if (!confirm(`Reject and delete the request "${club.name}"?`)) return;
       btn.disabled = true;
       const { error } = await supabaseClient.from("clubs").delete().eq("id", club.id);
@@ -212,6 +245,12 @@ async function loadPendingClubs() {
   });
 }
 
+pendingSearchInput.addEventListener("input", renderPendingTable);
+
+// ---------- all clubs ----------
+
+let clubsCache = [];
+
 async function loadClubs() {
   const { data: clubs, error } = await supabaseClient
     .from("clubs")
@@ -220,17 +259,29 @@ async function loadClubs() {
     .order("created_at", { ascending: false });
 
   if (error) { console.error(error); return; }
-
   statClubs.textContent = clubs.length;
+  clubsCache = clubs;
+  renderClubsTable();
+}
+
+function renderClubsTable() {
+  const term = clubsSearchInput.value.trim().toLowerCase();
+  const rows = term
+    ? clubsCache.filter(c =>
+        c.name.toLowerCase().includes(term) ||
+        c.category.toLowerCase().includes(term) ||
+        `${c.creator.first_name} ${c.creator.last_name}`.toLowerCase().includes(term))
+    : clubsCache;
+
   clubsTbody.innerHTML = "";
 
-  if (clubs.length === 0) {
+  if (rows.length === 0) {
     clubsEmpty.hidden = false;
     return;
   }
   clubsEmpty.hidden = true;
 
-  clubs.forEach(club => {
+  rows.forEach(club => {
     const createdByName = `${club.creator.first_name} ${club.creator.last_name}`;
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -245,7 +296,7 @@ async function loadClubs() {
 
   clubsTbody.querySelectorAll("[data-club-id]").forEach(btn => {
     btn.addEventListener("click", async () => {
-      const club = clubs.find(c => c.id === btn.dataset.clubId);
+      const club = clubsCache.find(c => c.id === btn.dataset.clubId);
       if (!confirm(`Delete the club "${club.name}"? This cannot be undone.`)) return;
       btn.disabled = true;
       const { error } = await supabaseClient.from("clubs").delete().eq("id", club.id);
@@ -259,6 +310,13 @@ async function loadClubs() {
   });
 }
 
+clubsSearchInput.addEventListener("input", renderClubsTable);
+
+// ---------- all accounts ----------
+
+let usersCache = [];
+let clubCountByUserCache = {};
+
 async function loadUsers() {
   const { data: profiles, error: profErr } = await supabaseClient
     .from("profiles")
@@ -271,21 +329,33 @@ async function loadUsers() {
     .select("id, created_by");
   if (clubsErr) { console.error(clubsErr); return; }
 
-  const clubCountByUser = {};
+  clubCountByUserCache = {};
   allClubs.forEach(c => {
-    clubCountByUser[c.created_by] = (clubCountByUser[c.created_by] || 0) + 1;
+    clubCountByUserCache[c.created_by] = (clubCountByUserCache[c.created_by] || 0) + 1;
   });
 
   statUsers.textContent = profiles.filter(p => p.role === "student").length;
+  usersCache = profiles;
+  renderUsersTable();
+}
+
+function renderUsersTable() {
+  const term = usersSearchInput.value.trim().toLowerCase();
+  const rows = term
+    ? usersCache.filter(p =>
+        `${p.first_name} ${p.last_name}`.toLowerCase().includes(term) ||
+        p.email.toLowerCase().includes(term))
+    : usersCache;
+
   usersTbody.innerHTML = "";
 
-  if (profiles.length === 0) {
+  if (rows.length === 0) {
     usersEmpty.hidden = false;
     return;
   }
   usersEmpty.hidden = true;
 
-  profiles.forEach(profile => {
+  rows.forEach(profile => {
     const isAdmin = profile.role === "admin";
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -293,7 +363,7 @@ async function loadUsers() {
       <td>${escapeHtml(profile.email)}</td>
       <td><span class="role-badge ${profile.account_type}">${profile.account_type}</span></td>
       <td><span class="role-badge ${profile.role}">${profile.role}</span></td>
-      <td>${clubCountByUser[profile.id] || 0}</td>
+      <td>${clubCountByUserCache[profile.id] || 0}</td>
       <td>${formatDate(profile.created_at)}</td>
       <td><button class="btn-danger" data-user-id="${profile.id}" ${isAdmin ? "disabled" : ""}>Delete</button></td>
     `;
@@ -302,7 +372,7 @@ async function loadUsers() {
 
   usersTbody.querySelectorAll("[data-user-id]").forEach(btn => {
     btn.addEventListener("click", async () => {
-      const profile = profiles.find(p => p.id === btn.dataset.userId);
+      const profile = usersCache.find(p => p.id === btn.dataset.userId);
       if (!confirm(`Delete the account for ${profile.first_name} ${profile.last_name}? This also deletes any clubs they created.`)) return;
       btn.disabled = true;
       try {
@@ -315,6 +385,8 @@ async function loadUsers() {
     });
   });
 }
+
+usersSearchInput.addEventListener("input", renderUsersTable);
 
 async function deleteUserAccount(userId) {
   const {

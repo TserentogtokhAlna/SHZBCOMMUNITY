@@ -46,6 +46,27 @@
           <input type="text" id="reg-lastname" required>
         </div>
       </div>
+      <div class="form-row" id="reg-grade-row">
+        <div class="field">
+          <label for="reg-grade">Grade</label>
+          <select id="reg-grade">
+            <option value="7">7th</option>
+            <option value="8">8th</option>
+            <option value="9">9th</option>
+            <option value="10">10th</option>
+            <option value="11">11th</option>
+            <option value="12">12th</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="reg-class">Class</label>
+          <select id="reg-class">
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+          </select>
+        </div>
+      </div>
       <div class="field">
         <label for="reg-email">School email</label>
         <input type="email" id="reg-email" placeholder="you@shinezuunbileg.edu.mn" required>
@@ -125,16 +146,19 @@
       <button class="sidebar-nav-item" data-nav="announcements" id="nav-announcements-btn">
         <span class="sidebar-nav-icon">&#128276;</span> Announcements
       </button>
+      <button class="sidebar-nav-item" data-nav="students" id="nav-students-btn">
+        <span class="sidebar-nav-icon">&#128101;</span> Students
+      </button>
     </nav>
 
     <div class="sidebar-footer">
-      <div class="sidebar-profile">
+      <button class="sidebar-profile" id="sidebar-profile-btn">
         <span class="profile-avatar" id="profile-btn"></span>
         <span class="sidebar-profile-info">
           <span class="sidebar-profile-name" id="profile-menu-name"></span>
           <span class="sidebar-profile-email" id="profile-menu-email"></span>
         </span>
-      </div>
+      </button>
       <button class="sidebar-logout-btn" id="logout-btn">Log out</button>
     </div>
   </aside>
@@ -153,6 +177,15 @@
       <div class="panel-heading">
         <h2>All Clubs</h2>
         <p class="panel-subtext">Browse clubs created by students at Shine Zuun Bileg</p>
+      </div>
+      <div class="category-filters" id="category-filters">
+        <button class="category-filter-btn active" data-category-filter="All">All</button>
+        <button class="category-filter-btn" data-category-filter="Academic">Academic</button>
+        <button class="category-filter-btn" data-category-filter="Arts">Arts</button>
+        <button class="category-filter-btn" data-category-filter="Sports">Sports</button>
+        <button class="category-filter-btn" data-category-filter="Technology">Technology</button>
+        <button class="category-filter-btn" data-category-filter="Volunteer">Volunteer</button>
+        <button class="category-filter-btn" data-category-filter="Other">Other</button>
       </div>
       <div id="club-grid" class="club-grid"></div>
       <div id="club-empty" class="empty-state" hidden>
@@ -188,6 +221,44 @@
       <p class="empty-state" id="announcements-page-past-empty" hidden>No past announcements.</p>
     </section>
 
+    <!-- Students directory -->
+    <section id="view-students" class="view-panel">
+      <div class="panel-heading">
+        <h2>Students</h2>
+        <p class="panel-subtext">Search for other students at Shine Zuun Bileg</p>
+      </div>
+      <div class="field search-field">
+        <input type="text" id="students-search" placeholder="Search by name...">
+      </div>
+      <div id="students-grid" class="club-grid"></div>
+      <p class="empty-state" id="students-empty" hidden>No students found.</p>
+    </section>
+
+    <!-- Student profile -->
+    <section id="view-student-profile" class="view-panel">
+      <button class="back-btn" id="student-profile-back-btn">&larr; Back to students</button>
+
+      <div class="club-detail-card">
+        <div class="profile-header">
+          <span class="member-row-avatar profile-header-avatar" id="student-profile-avatar"></span>
+          <div>
+            <h2 id="student-profile-name"></h2>
+            <p class="club-detail-meta" id="student-profile-meta"></p>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="student-profile-edit-btn" hidden>Edit Profile</button>
+        </div>
+
+        <div class="club-detail-panel active">
+          <h3>Bio</h3>
+          <p id="student-profile-bio"></p>
+
+          <h3>Club History</h3>
+          <div id="student-profile-history" class="members-list"></div>
+          <p class="empty-state" id="student-profile-history-empty" hidden>No club history yet.</p>
+        </div>
+      </div>
+    </section>
+
     <!-- Club detail -->
     <section id="view-club-detail" class="view-panel">
       <button class="back-btn" id="detail-back-btn">&larr; Back to clubs</button>
@@ -216,8 +287,8 @@
         <div class="club-detail-panel active" id="detail-panel-overview">
           <h3>About</h3>
           <p id="detail-description"></p>
-          <h3>Meeting Info</h3>
-          <p id="detail-meeting"></p>
+          <h3>Founded</h3>
+          <p id="detail-founded"></p>
         </div>
 
         <div class="club-detail-panel" id="detail-panel-members">
@@ -281,11 +352,7 @@
       </div>
       <div class="field">
         <label for="club-description">Description</label>
-        <textarea id="club-description" rows="3" required></textarea>
-      </div>
-      <div class="field">
-        <label for="club-meeting">Meeting info (day, time, location)</label>
-        <input type="text" id="club-meeting" placeholder="e.g. Fridays 3PM, Room 204">
+        <textarea id="club-description" rows="4" required></textarea>
       </div>
       <p class="form-error" id="create-club-error"></p>
       <div class="modal-actions">
@@ -320,6 +387,48 @@
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" id="event-modal-cancel-btn">Cancel</button>
         <button type="submit" class="btn btn-primary" id="event-modal-submit-btn">Add event</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== APPLY TO CLUB MODAL ===================== -->
+<div id="apply-modal-overlay" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Apply to join</h2>
+      <button class="modal-close" id="apply-modal-close-btn">&times;</button>
+    </div>
+    <form id="form-apply">
+      <div class="field">
+        <label for="apply-message">Anything you'd like to say to the club owner? (optional)</label>
+        <textarea id="apply-message" rows="3"></textarea>
+      </div>
+      <p class="form-error" id="apply-error"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="apply-modal-cancel-btn">Cancel</button>
+        <button type="submit" class="btn btn-primary">Send application</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== EDIT PROFILE MODAL ===================== -->
+<div id="edit-profile-modal-overlay" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Edit your profile</h2>
+      <button class="modal-close" id="edit-profile-modal-close-btn">&times;</button>
+    </div>
+    <form id="form-edit-profile">
+      <div class="field">
+        <label for="edit-profile-bio">Bio</label>
+        <textarea id="edit-profile-bio" rows="4" placeholder="Tell others about your interests and skills..."></textarea>
+      </div>
+      <p class="form-error" id="edit-profile-error"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="edit-profile-modal-cancel-btn">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save profile</button>
       </div>
     </form>
   </div>

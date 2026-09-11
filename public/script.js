@@ -28,6 +28,7 @@ const resendCodeBtn = document.getElementById("resend-code-btn");
 const verifyBackBtn = document.getElementById("verify-back-btn");
 
 const profileBtn = document.getElementById("profile-btn");
+const sidebarProfileBtn = document.getElementById("sidebar-profile-btn");
 const profileMenuName = document.getElementById("profile-menu-name");
 const profileMenuEmail = document.getElementById("profile-menu-email");
 const logoutBtn = document.getElementById("logout-btn");
@@ -40,6 +41,7 @@ const sidebarNavItems = document.querySelectorAll(".sidebar-nav-item");
 const navHomeBtn = document.getElementById("nav-home-btn");
 const navMyClubsBtn = document.getElementById("nav-my-clubs-btn");
 const navAnnouncementsBtn = document.getElementById("nav-announcements-btn");
+const navStudentsBtn = document.getElementById("nav-students-btn");
 
 const clubGrid = document.getElementById("club-grid");
 const clubEmpty = document.getElementById("club-empty");
@@ -55,6 +57,21 @@ const announcementsPagePastEmpty = document.getElementById("announcements-page-p
 const viewClubList = document.getElementById("view-club-list");
 const viewMyClubs = document.getElementById("view-my-clubs");
 const viewAnnouncements = document.getElementById("view-announcements");
+const viewStudents = document.getElementById("view-students");
+const studentsSearchInput = document.getElementById("students-search");
+const studentsGrid = document.getElementById("students-grid");
+const studentsEmpty = document.getElementById("students-empty");
+
+const viewStudentProfile = document.getElementById("view-student-profile");
+const studentProfileBackBtn = document.getElementById("student-profile-back-btn");
+const studentProfileAvatar = document.getElementById("student-profile-avatar");
+const studentProfileName = document.getElementById("student-profile-name");
+const studentProfileMeta = document.getElementById("student-profile-meta");
+const studentProfileEditBtn = document.getElementById("student-profile-edit-btn");
+const studentProfileBio = document.getElementById("student-profile-bio");
+const studentProfileHistory = document.getElementById("student-profile-history");
+const studentProfileHistoryEmpty = document.getElementById("student-profile-history-empty");
+
 const viewClubDetail = document.getElementById("view-club-detail");
 const detailBackBtn = document.getElementById("detail-back-btn");
 const detailBanner = document.getElementById("detail-banner");
@@ -70,7 +87,7 @@ const detailPanelEvents = document.getElementById("detail-panel-events");
 const detailPanelManage = document.getElementById("detail-panel-manage");
 const manageTabBtn = document.getElementById("manage-tab-btn");
 const detailDescription = document.getElementById("detail-description");
-const detailMeeting = document.getElementById("detail-meeting");
+const detailFounded = document.getElementById("detail-founded");
 const detailMembersList = document.getElementById("detail-members-list");
 const detailMembersEmpty = document.getElementById("detail-members-empty");
 const detailEventsList = document.getElementById("detail-events-list");
@@ -192,7 +209,39 @@ resendCodeBtn.addEventListener("click", async () => {
   }, 1000);
 });
 
+// ---------- grade / class helpers ----------
+// The school year rolls over Sept 1. Rather than storing a grade that would
+// need manually bumping every year, we store the calendar year a student is
+// expected to finish grade 12 (graduation_year) and compute their current
+// grade from today's date whenever it's needed.
+
+function getSchoolYear(date) {
+  const d = date || new Date();
+  return d.getMonth() >= 8 ? d.getFullYear() : d.getFullYear() - 1;
+}
+
+function computeGraduationYear(selectedGrade, atDate) {
+  const sy = getSchoolYear(atDate);
+  return sy + (12 - selectedGrade) + 1;
+}
+
+function computeCurrentGrade(graduationYear, atDate) {
+  const sy = getSchoolYear(atDate);
+  return 12 - (graduationYear - sy - 1);
+}
+
+function formatGradeLabel(graduationYear, classSection) {
+  if (!graduationYear) return "";
+  const grade = computeCurrentGrade(graduationYear);
+  const gradeText = grade > 12 ? "Graduated" : `Grade ${grade}`;
+  return classSection ? `${gradeText}${grade <= 12 ? classSection : ""}` : gradeText;
+}
+
 // ---------- account type toggle ----------
+
+const regGradeRow = document.getElementById("reg-grade-row");
+const regGradeSelect = document.getElementById("reg-grade");
+const regClassSelect = document.getElementById("reg-class");
 
 const accountTypeButtons = document.querySelectorAll(".account-type-btn");
 accountTypeButtons.forEach(btn => {
@@ -200,6 +249,7 @@ accountTypeButtons.forEach(btn => {
     accountTypeButtons.forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     selectedAccountType = btn.dataset.accountType;
+    regGradeRow.hidden = selectedAccountType !== "student";
   });
 });
 
@@ -224,6 +274,10 @@ formRegister.addEventListener("submit", async (e) => {
     return;
   }
 
+  const isStudent = selectedAccountType === "student";
+  const graduationYear = isStudent ? computeGraduationYear(Number(regGradeSelect.value)) : null;
+  const classSection = isStudent ? regClassSelect.value : null;
+
   const { error } = await supabaseClient.auth.signUp({
     email,
     password,
@@ -232,6 +286,8 @@ formRegister.addEventListener("submit", async (e) => {
         first_name: firstName,
         last_name: lastName,
         account_type: selectedAccountType,
+        graduation_year: graduationYear,
+        class_section: classSection,
       },
     },
   });
@@ -288,6 +344,9 @@ async function afterAuthSuccess() {
     email: profile.email,
     role: profile.role,
     accountType: profile.account_type,
+    graduationYear: profile.graduation_year,
+    classSection: profile.class_section,
+    bio: profile.bio,
   };
 
   if (currentUser.role === "admin") {
@@ -328,13 +387,19 @@ const viewPanelsMap = {
   home: viewClubList,
   "my-clubs": viewMyClubs,
   announcements: viewAnnouncements,
+  students: viewStudents,
 };
 
 let lastListView = "home";
 
-function showView(name) {
+function hideAllMainViews() {
   Object.values(viewPanelsMap).forEach(v => v.classList.remove("active"));
   viewClubDetail.classList.remove("active");
+  viewStudentProfile.classList.remove("active");
+}
+
+function showView(name) {
+  hideAllMainViews();
   viewPanelsMap[name].classList.add("active");
   sidebarNavItems.forEach(item => item.classList.toggle("active", item.dataset.nav === name));
   closeSidebar();
@@ -348,13 +413,167 @@ function showView(name) {
     renderMyClubs();
   } else if (name === "announcements") {
     loadAnnouncementsPage();
+  } else if (name === "students") {
+    lastListView = "students";
+    studentsSearchInput.value = "";
+    renderStudents();
   }
 }
 
 navHomeBtn.addEventListener("click", () => showView("home"));
 navMyClubsBtn.addEventListener("click", () => showView("my-clubs"));
 navAnnouncementsBtn.addEventListener("click", () => showView("announcements"));
+navStudentsBtn.addEventListener("click", () => showView("students"));
 brandHomeBtn.addEventListener("click", () => showView("home"));
+
+// ---------- students directory ----------
+
+let allStudentsCache = [];
+
+async function renderStudents() {
+  const { data: students, error } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("account_type", "student")
+    .order("first_name", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  allStudentsCache = students;
+  applyStudentSearch();
+}
+
+function applyStudentSearch() {
+  const term = studentsSearchInput.value.trim().toLowerCase();
+  const filtered = term
+    ? allStudentsCache.filter(s => `${s.first_name} ${s.last_name}`.toLowerCase().includes(term))
+    : allStudentsCache;
+
+  studentsGrid.innerHTML = "";
+  studentsEmpty.hidden = filtered.length !== 0;
+
+  filtered.forEach(s => {
+    const initials = (s.first_name[0] || "") + (s.last_name[0] || "");
+    const card = document.createElement("button");
+    card.className = "club-card";
+    card.innerHTML = `
+      <span class="member-row-avatar" style="margin-bottom:10px;">${escapeHtml(initials.toUpperCase())}</span>
+      <h3>${escapeHtml(s.first_name)} ${escapeHtml(s.last_name)}</h3>
+      <p>${escapeHtml(formatGradeLabel(s.graduation_year, s.class_section) || "")}</p>
+    `;
+    card.addEventListener("click", () => showStudentProfile(s));
+    studentsGrid.appendChild(card);
+  });
+}
+
+studentsSearchInput.addEventListener("input", applyStudentSearch);
+
+async function viewStudentProfileById(userId) {
+  const { data: profile, error } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .single();
+  if (error || !profile) {
+    showToast("Could not load that profile.");
+    return;
+  }
+  showStudentProfile(profile);
+}
+
+async function showStudentProfile(profile) {
+  hideAllMainViews();
+  viewStudentProfile.classList.add("active");
+
+  const initials = (profile.first_name[0] || "") + (profile.last_name[0] || "");
+  studentProfileAvatar.textContent = initials.toUpperCase();
+  studentProfileName.textContent = `${profile.first_name} ${profile.last_name}`;
+  studentProfileMeta.textContent = formatGradeLabel(profile.graduation_year, profile.class_section) || "";
+  studentProfileBio.textContent = profile.bio || "No bio yet.";
+  studentProfileEditBtn.hidden = profile.id !== currentUser.id;
+  studentProfileEditBtn.onclick = () => openEditProfileModal(profile);
+
+  studentProfileHistory.innerHTML = "";
+  const { data: history, error } = await supabaseClient
+    .from("club_members")
+    .select("*, club:clubs(name)")
+    .eq("user_id", profile.id)
+    .in("status", ["approved", "left"])
+    .order("applied_at", { ascending: false });
+
+  if (error || !history || history.length === 0) {
+    studentProfileHistoryEmpty.hidden = false;
+    return;
+  }
+  studentProfileHistoryEmpty.hidden = true;
+
+  history.forEach(h => {
+    const row = document.createElement("div");
+    row.className = "member-row";
+    const joined = formatDateOnly(h.applied_at);
+    const statusText = h.status === "left" && h.left_at
+      ? `Joined ${joined} · Left ${formatDateOnly(h.left_at)}`
+      : `Joined ${joined} · Current member`;
+    row.innerHTML = `
+      <div class="member-row-name">${escapeHtml(h.club ? h.club.name : "Deleted club")}</div>
+      <span class="club-card-footer">${statusText}</span>
+    `;
+    studentProfileHistory.appendChild(row);
+  });
+}
+
+studentProfileBackBtn.addEventListener("click", () => showView(lastListView === "students" ? "students" : "home"));
+
+// ---------- edit profile modal ----------
+
+const editProfileModalOverlay = document.getElementById("edit-profile-modal-overlay");
+const editProfileModalCloseBtn = document.getElementById("edit-profile-modal-close-btn");
+const editProfileModalCancelBtn = document.getElementById("edit-profile-modal-cancel-btn");
+const formEditProfile = document.getElementById("form-edit-profile");
+const editProfileError = document.getElementById("edit-profile-error");
+const editProfileBioInput = document.getElementById("edit-profile-bio");
+
+function openEditProfileModal(profile) {
+  editProfileError.textContent = "";
+  editProfileBioInput.value = profile.bio || "";
+  editProfileModalOverlay.classList.add("open");
+}
+
+function closeEditProfileModal() {
+  editProfileModalOverlay.classList.remove("open");
+}
+
+editProfileModalCloseBtn.addEventListener("click", closeEditProfileModal);
+editProfileModalCancelBtn.addEventListener("click", closeEditProfileModal);
+editProfileModalOverlay.addEventListener("click", (e) => {
+  if (e.target === editProfileModalOverlay) closeEditProfileModal();
+});
+
+formEditProfile.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  editProfileError.textContent = "";
+
+  const bio = editProfileBioInput.value.trim();
+  const { error } = await supabaseClient
+    .from("profiles")
+    .update({ bio })
+    .eq("id", currentUser.id);
+
+  if (error) {
+    editProfileError.textContent = error.message;
+    return;
+  }
+
+  currentUser.bio = bio;
+  closeEditProfileModal();
+  showToast("Profile updated.");
+  await viewStudentProfileById(currentUser.id);
+});
+
+sidebarProfileBtn.addEventListener("click", () => viewStudentProfileById(currentUser.id));
 
 function openSidebar() {
   appSidebar.classList.add("open");
@@ -425,7 +644,7 @@ async function showClubDetail(club) {
   detailName.textContent = club.name;
   detailMeta.textContent = `Created by ${club.createdByName}`;
   detailDescription.textContent = club.description;
-  detailMeeting.textContent = club.meeting || "Not specified";
+  detailFounded.textContent = formatDateOnly(club.created_at);
 
   detailActions.innerHTML = "";
   detailMembersList.innerHTML = "";
@@ -495,7 +714,7 @@ function renderDetailActions(club, isOwner, myRow) {
     return;
   }
 
-  if (!myRow) {
+  if (!myRow || myRow.status === "left") {
     const applyBtn = document.createElement("button");
     applyBtn.className = "btn btn-primary btn-sm";
     applyBtn.textContent = "Apply to Join";
@@ -538,8 +757,10 @@ function renderMembersList(approved, ownerId) {
     .forEach(m => {
       const name = `${m.profile.first_name} ${m.profile.last_name}`;
       const initials = (m.profile.first_name[0] || "") + (m.profile.last_name[0] || "");
-      const row = document.createElement("div");
+      const row = document.createElement("button");
       row.className = "member-row";
+      row.style.width = "100%";
+      row.style.cursor = "pointer";
       row.innerHTML = `
         <div class="member-row-name">
           <span class="member-row-avatar">${escapeHtml(initials.toUpperCase())}</span>
@@ -547,6 +768,7 @@ function renderMembersList(approved, ownerId) {
         </div>
         ${m.user_id === ownerId ? '<span class="member-owner-tag">Owner</span>' : ""}
       `;
+      row.addEventListener("click", () => viewStudentProfileById(m.user_id));
       detailMembersList.appendChild(row);
     });
 }
@@ -558,13 +780,16 @@ function renderRequestsList(pending, club) {
   pending.forEach(m => {
     const name = `${m.profile.first_name} ${m.profile.last_name}`;
     const row = document.createElement("div");
-    row.className = "member-row";
+    row.className = "member-row" + (m.message ? " has-message" : "");
     row.innerHTML = `
-      <div class="member-row-name">${escapeHtml(name)}</div>
-      <div class="member-row-actions">
-        <button class="btn-approve" data-approve-member-id="${m.id}">Approve</button>
-        <button class="btn-danger" data-reject-member-id="${m.id}">Reject</button>
+      <div class="member-row-top">
+        <div class="member-row-name">${escapeHtml(name)}</div>
+        <div class="member-row-actions">
+          <button class="btn-approve" data-approve-member-id="${m.id}">Approve</button>
+          <button class="btn-danger" data-reject-member-id="${m.id}">Reject</button>
+        </div>
       </div>
+      ${m.message ? `<p class="member-row-message">"${escapeHtml(m.message)}"</p>` : ""}
     `;
     manageRequestsList.appendChild(row);
   });
@@ -593,19 +818,61 @@ function renderRequestsList(pending, club) {
 
 manageEditClubBtn.addEventListener("click", () => openEditClubModal(currentClubDetail));
 
-async function applyToClub(club) {
-  const { error } = await supabaseClient.from("club_members").insert({
-    club_id: club.id,
-    user_id: currentUser.id,
-    status: "pending",
-  });
+// ---------- apply to club (with optional message) ----------
+
+const applyModalOverlay = document.getElementById("apply-modal-overlay");
+const applyModalCloseBtn = document.getElementById("apply-modal-close-btn");
+const applyModalCancelBtn = document.getElementById("apply-modal-cancel-btn");
+const formApply = document.getElementById("form-apply");
+const applyError = document.getElementById("apply-error");
+const applyMessageInput = document.getElementById("apply-message");
+
+let applyingToClub = null;
+
+function applyToClub(club) {
+  applyingToClub = club;
+  applyError.textContent = "";
+  formApply.reset();
+  applyModalOverlay.classList.add("open");
+}
+
+function closeApplyModal() {
+  applyModalOverlay.classList.remove("open");
+  applyingToClub = null;
+}
+
+applyModalCloseBtn.addEventListener("click", closeApplyModal);
+applyModalCancelBtn.addEventListener("click", closeApplyModal);
+applyModalOverlay.addEventListener("click", (e) => {
+  if (e.target === applyModalOverlay) closeApplyModal();
+});
+
+formApply.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  applyError.textContent = "";
+
+  const club = applyingToClub;
+  const message = applyMessageInput.value.trim();
+
+  const { error } = await supabaseClient.from("club_members").upsert(
+    {
+      club_id: club.id,
+      user_id: currentUser.id,
+      status: "pending",
+      message,
+      left_at: null,
+      decided_at: null,
+    },
+    { onConflict: "club_id,user_id" }
+  );
   if (error) {
-    showToast(error.message);
+    applyError.textContent = error.message;
     return;
   }
+  closeApplyModal();
   showToast("Application sent! The club owner will review it.");
   await loadClubMembership(club);
-}
+});
 
 async function withdrawApplication(rowId, club) {
   const { error } = await supabaseClient.from("club_members").delete().eq("id", rowId);
@@ -615,7 +882,10 @@ async function withdrawApplication(rowId, club) {
 
 async function leaveClub(rowId, club) {
   if (!confirm(`Leave ${club.name}?`)) return;
-  const { error } = await supabaseClient.from("club_members").delete().eq("id", rowId);
+  const { error } = await supabaseClient
+    .from("club_members")
+    .update({ status: "left", left_at: new Date().toISOString() })
+    .eq("id", rowId);
   if (error) { showToast(error.message); return; }
   showToast(`You left ${club.name}.`);
   await loadClubMembership(club);
@@ -626,6 +896,12 @@ async function leaveClub(rowId, club) {
 function formatEventDate(iso) {
   return new Date(iso).toLocaleString(undefined, {
     year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+  });
+}
+
+function formatDateOnly(iso) {
+  return new Date(iso).toLocaleDateString(undefined, {
+    year: "numeric", month: "long", day: "numeric",
   });
 }
 
@@ -833,12 +1109,30 @@ async function loadAnnouncementsPage() {
   past.forEach(a => announcementsPagePast.appendChild(renderAnnouncementCard(a, true)));
 }
 
+let activeCategoryFilter = "All";
+
+const categoryFilterButtons = document.querySelectorAll(".category-filter-btn");
+categoryFilterButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    categoryFilterButtons.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeCategoryFilter = btn.dataset.categoryFilter;
+    renderClubs();
+  });
+});
+
 async function renderClubs() {
-  const { data: clubs, error } = await supabaseClient
+  let query = supabaseClient
     .from("clubs")
     .select("*, creator:profiles(first_name, last_name)")
     .eq("status", "approved")
     .order("created_at", { ascending: false });
+
+  if (activeCategoryFilter !== "All") {
+    query = query.eq("category", activeCategoryFilter);
+  }
+
+  const { data: clubs, error } = await query;
 
   clubGrid.innerHTML = "";
 
@@ -890,7 +1184,6 @@ function openEditClubModal(club) {
   document.getElementById("club-name").value = club.name;
   document.getElementById("club-category").value = club.category;
   document.getElementById("club-description").value = club.description;
-  document.getElementById("club-meeting").value = club.meeting || "";
   modalOverlay.classList.add("open");
 }
 
@@ -913,7 +1206,6 @@ formCreateClub.addEventListener("submit", async (e) => {
   const name = document.getElementById("club-name").value.trim();
   const category = document.getElementById("club-category").value;
   const description = document.getElementById("club-description").value.trim();
-  const meeting = document.getElementById("club-meeting").value.trim();
 
   if (!name || !description) {
     createClubError.textContent = "Please fill in the required fields.";
@@ -923,7 +1215,7 @@ formCreateClub.addEventListener("submit", async (e) => {
   if (editingClubId) {
     const { error } = await supabaseClient
       .from("clubs")
-      .update({ name, category, description, meeting })
+      .update({ name, category, description })
       .eq("id", editingClubId);
 
     if (error) {
@@ -931,7 +1223,7 @@ formCreateClub.addEventListener("submit", async (e) => {
       return;
     }
 
-    const updatedClub = { ...currentClubDetail, name, category, description, meeting };
+    const updatedClub = { ...currentClubDetail, name, category, description };
     closeModal();
     showToast("Club updated.");
     await showClubDetail(updatedClub);
@@ -942,7 +1234,6 @@ formCreateClub.addEventListener("submit", async (e) => {
     name,
     category,
     description,
-    meeting,
     created_by: currentUser.id,
     status: "pending",
   });
