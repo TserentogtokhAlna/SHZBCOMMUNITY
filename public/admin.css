@@ -1,90 +1,151 @@
 .admin-body {
-  background: var(--bg-void);
+  background: var(--bg-page);
 }
 
-.admin-header {
-  border-bottom-color: rgba(255, 43, 214, 0.3);
-  box-shadow: 0 1px 0 rgba(255, 43, 214, 0.15), 0 8px 30px rgba(0, 0, 0, 0.4);
+/* ---------- top header (admin keeps a header bar, not the sidebar) ---------- */
+
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: var(--navy-800);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(15, 41, 66, 0.3);
 }
 
-.admin-logo {
-  border-color: rgba(255, 43, 214, 0.5);
-  background: linear-gradient(145deg, rgba(255, 43, 214, 0.1), rgba(0, 246, 255, 0.06));
-  box-shadow: 0 0 16px rgba(255, 43, 214, 0.35), inset 0 0 12px rgba(255, 43, 214, 0.12);
+.header-logo {
+  flex-shrink: 0;
+}
+
+.header-title {
+  flex: 1;
+  text-align: center;
+  background: none;
+  border: none;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
 }
 
 .admin-header-title {
   cursor: default;
-  font-size: 15px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
 }
 
-.admin-header-title:hover {
-  color: var(--text-bright);
-  text-shadow: none;
-}
-
 .admin-tag {
   font-size: 10px;
+  font-weight: 700;
   padding: 3px 9px;
   border-radius: 999px;
-  background: rgba(255, 43, 214, 0.12);
-  border: 1px solid rgba(255, 43, 214, 0.5);
-  color: var(--neon-magenta);
-  letter-spacing: 0.1em;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  letter-spacing: 0.08em;
 }
 
-.admin-glow {
-  background:
-    radial-gradient(55% 45% at 85% 8%, rgba(255, 43, 214, 0.18), transparent 60%),
-    radial-gradient(50% 40% at 10% 15%, rgba(0, 246, 255, 0.12), transparent 60%),
-    radial-gradient(60% 50% at 50% 100%, rgba(139, 92, 246, 0.14), transparent 60%);
+.header-profile {
+  flex-shrink: 0;
+  width: 46px;
+  display: flex;
+  justify-content: flex-end;
+  position: relative;
+}
+
+.profile-menu {
+  display: none;
+  position: absolute;
+  top: 52px;
+  right: 0;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-panel);
+  padding: 14px;
+  min-width: 210px;
+  text-align: left;
+}
+
+.profile-menu.open {
+  display: block;
+}
+
+.profile-menu-name {
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text-heading);
+}
+
+.profile-menu-email {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  word-break: break-all;
+}
+
+.profile-menu-logout {
+  width: 100%;
+  padding: 9px;
+  border: 1px solid rgba(192, 55, 74, 0.35);
+  border-radius: 6px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.profile-menu-logout:hover {
+  background: #fbdde1;
 }
 
 .admin-main {
+  margin: 0 auto;
   max-width: 1140px;
+  padding: 96px 32px 60px;
 }
+
+/* ---------- stats / sections ---------- */
 
 .admin-stats {
   display: flex;
   gap: 18px;
   margin-bottom: 36px;
+  flex-wrap: wrap;
 }
 
 .stat-card {
-  background: var(--bg-panel);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  clip-path: polygon(0 10px, 10px 0, 100% 0, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
   padding: 20px 26px;
   min-width: 180px;
+  box-shadow: var(--shadow-card);
 }
 
 .stat-value {
-  font-family: var(--font-body);
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--neon-cyan);
-  text-shadow: 0 0 18px rgba(0, 246, 255, 0.5);
+  font-family: var(--font);
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--navy-700);
 }
 
 .stat-card-pending .stat-value {
-  color: var(--neon-yellow);
-  text-shadow: 0 0 18px rgba(255, 225, 77, 0.5);
+  color: var(--gold);
 }
 
 .stat-label {
   font-size: 12px;
   color: var(--text-muted);
   margin-top: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-family: "Share Tech Mono", monospace;
 }
 
 .admin-section {
@@ -92,12 +153,11 @@
 }
 
 .admin-section h2 {
-  font-family: var(--font-display);
-  font-size: 15px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 700;
   margin: 0 0 14px;
-  color: var(--text-bright);
+  color: var(--text-heading);
 }
 
 .admin-section-header {
@@ -112,12 +172,11 @@
 }
 
 .table-wrap {
-  background: var(--bg-panel);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--line);
-  border-radius: 4px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
   overflow-x: auto;
+  box-shadow: var(--shadow-card);
 }
 
 .admin-table {
@@ -129,25 +188,25 @@
 .admin-table th {
   text-align: left;
   padding: 14px 18px;
-  color: var(--neon-cyan);
-  font-family: var(--font-display);
+  color: var(--text-muted);
+  font-family: var(--font);
   font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  border-bottom: 1px solid var(--line);
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
-  opacity: 0.85;
 }
 
 .admin-table td {
   padding: 14px 18px;
-  border-bottom: 1px solid rgba(0, 246, 255, 0.08);
+  border-bottom: 1px solid var(--border);
   vertical-align: top;
-  color: var(--text-bright);
+  color: var(--text-body);
 }
 
 .admin-table tr:hover td {
-  background: rgba(0, 246, 255, 0.04);
+  background: var(--bg-page);
 }
 
 .admin-table tr:last-child td {
@@ -163,80 +222,32 @@
   display: inline-block;
   padding: 3px 11px;
   border-radius: 999px;
-  font-family: var(--font-display);
-  font-size: 10px;
+  font-family: var(--font);
+  font-size: 10.5px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .role-badge.admin {
-  background: rgba(255, 225, 77, 0.1);
-  color: var(--neon-yellow);
-  border: 1px solid rgba(255, 225, 77, 0.4);
+  background: var(--gold-bg);
+  color: var(--gold);
+  border: 1px solid rgba(184, 144, 47, 0.4);
 }
 
 .role-badge.student {
-  background: rgba(0, 246, 255, 0.1);
-  color: var(--neon-cyan);
-  border: 1px solid rgba(0, 246, 255, 0.4);
+  background: #eaf1f7;
+  color: var(--blue-accent);
+  border: 1px solid rgba(61, 109, 153, 0.35);
 }
 
 .role-badge.teacher {
-  background: rgba(139, 92, 246, 0.12);
-  color: var(--neon-violet);
-  border: 1px solid rgba(139, 92, 246, 0.5);
-}
-
-.btn-danger {
-  background: rgba(255, 56, 96, 0.08);
-  color: var(--neon-red);
-  border: 1px solid rgba(255, 56, 96, 0.4);
-  padding: 7px 14px;
-  border-radius: 4px;
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background: rgba(255, 56, 96, 0.2);
-  box-shadow: 0 0 14px rgba(255, 56, 96, 0.4);
-}
-
-.btn-danger:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
+  background: #efeafb;
+  color: var(--cat-academic);
+  border: 1px solid rgba(91, 75, 158, 0.35);
 }
 
 .pending-actions {
   display: flex;
   gap: 8px;
-}
-
-.btn-approve {
-  background: rgba(57, 255, 157, 0.1);
-  color: var(--neon-green);
-  border: 1px solid rgba(57, 255, 157, 0.45);
-  padding: 7px 14px;
-  border-radius: 4px;
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.btn-approve:hover:not(:disabled) {
-  background: rgba(57, 255, 157, 0.22);
-  box-shadow: 0 0 14px rgba(57, 255, 157, 0.4);
-}
-
-.btn-approve:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
 }
 
 .table-wrap .empty-state {

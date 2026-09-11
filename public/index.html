@@ -6,7 +6,7 @@
 <title>Shine Zuun Bileg Clubs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -96,22 +96,52 @@
 <!-- ===================== APP VIEW ===================== -->
 <div id="view-app" class="app-view">
 
-  <header class="app-header">
-    <div class="logo-badge header-logo" title="Home"><img src="logo.jpg" alt="Shine Zuun Bileg logo"></div>
-    <button class="header-title" id="brand-home-btn">Shine Zuun Bileg Clubs</button>
-    <div class="header-profile">
-      <button class="profile-avatar" id="profile-btn"></button>
-      <div class="profile-menu" id="profile-menu">
-        <div class="profile-menu-name" id="profile-menu-name"></div>
-        <div class="profile-menu-email" id="profile-menu-email"></div>
-        <button class="profile-menu-logout" id="logout-btn">Log out</button>
+  <div class="mobile-topbar">
+    <button class="hamburger-btn" id="hamburger-btn" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="logo-badge mobile-logo"><img src="logo.jpg" alt="Shine Zuun Bileg logo"></div>
+    <span class="mobile-title">Shine Zuun Bileg</span>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <aside class="app-sidebar" id="app-sidebar">
+    <button class="sidebar-brand" id="brand-home-btn">
+      <div class="logo-badge sidebar-logo"><img src="logo.jpg" alt="Shine Zuun Bileg logo"></div>
+      <span class="sidebar-brand-text">
+        <span class="sidebar-brand-name">Shine Zuun Bileg</span>
+        <span class="sidebar-brand-sub">Clubs</span>
+      </span>
+    </button>
+
+    <nav class="sidebar-nav">
+      <button class="sidebar-nav-item active" data-nav="home" id="nav-home-btn">
+        <span class="sidebar-nav-icon">&#8962;</span> Home
+      </button>
+      <button class="sidebar-nav-item" data-nav="my-clubs" id="nav-my-clubs-btn">
+        <span class="sidebar-nav-icon">&#9737;</span> My Clubs
+      </button>
+      <button class="sidebar-nav-item" data-nav="announcements" id="nav-announcements-btn">
+        <span class="sidebar-nav-icon">&#128276;</span> Announcements
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-profile">
+        <span class="profile-avatar" id="profile-btn"></span>
+        <span class="sidebar-profile-info">
+          <span class="sidebar-profile-name" id="profile-menu-name"></span>
+          <span class="sidebar-profile-email" id="profile-menu-email"></span>
+        </span>
       </div>
+      <button class="sidebar-logout-btn" id="logout-btn">Log out</button>
     </div>
-  </header>
+  </aside>
 
   <main class="app-main">
 
-    <!-- Club list -->
+    <!-- Home / club list -->
     <section id="view-club-list" class="view-panel active">
       <div id="announcements-section" hidden>
         <div class="panel-heading">
@@ -128,6 +158,34 @@
       <div id="club-empty" class="empty-state" hidden>
         <p>No clubs yet. Be the first to create one!</p>
       </div>
+    </section>
+
+    <!-- My Clubs -->
+    <section id="view-my-clubs" class="view-panel">
+      <div class="panel-heading">
+        <h2>My Clubs</h2>
+        <p class="panel-subtext">Clubs you've created or joined</p>
+      </div>
+      <div id="my-clubs-grid" class="club-grid"></div>
+      <div id="my-clubs-empty" class="empty-state" hidden>
+        <p>You haven't joined or created any clubs yet.</p>
+      </div>
+    </section>
+
+    <!-- Announcements page -->
+    <section id="view-announcements" class="view-panel">
+      <div class="panel-heading">
+        <h2>Announcements</h2>
+        <p class="panel-subtext">School-wide news and one-time events</p>
+      </div>
+
+      <h3 class="section-subheading">Upcoming</h3>
+      <div id="announcements-page-upcoming" class="announcements-list"></div>
+      <p class="empty-state" id="announcements-page-upcoming-empty" hidden>No upcoming announcements.</p>
+
+      <h3 class="section-subheading">Past</h3>
+      <div id="announcements-page-past" class="announcements-list"></div>
+      <p class="empty-state" id="announcements-page-past-empty" hidden>No past announcements.</p>
     </section>
 
     <!-- Club detail -->

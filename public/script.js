@@ -28,16 +28,33 @@ const resendCodeBtn = document.getElementById("resend-code-btn");
 const verifyBackBtn = document.getElementById("verify-back-btn");
 
 const profileBtn = document.getElementById("profile-btn");
-const profileMenu = document.getElementById("profile-menu");
 const profileMenuName = document.getElementById("profile-menu-name");
 const profileMenuEmail = document.getElementById("profile-menu-email");
 const logoutBtn = document.getElementById("logout-btn");
 const brandHomeBtn = document.getElementById("brand-home-btn");
 
+const hamburgerBtn = document.getElementById("hamburger-btn");
+const appSidebar = document.getElementById("app-sidebar");
+const sidebarOverlay = document.getElementById("sidebar-overlay");
+const sidebarNavItems = document.querySelectorAll(".sidebar-nav-item");
+const navHomeBtn = document.getElementById("nav-home-btn");
+const navMyClubsBtn = document.getElementById("nav-my-clubs-btn");
+const navAnnouncementsBtn = document.getElementById("nav-announcements-btn");
+
 const clubGrid = document.getElementById("club-grid");
 const clubEmpty = document.getElementById("club-empty");
 
+const myClubsGrid = document.getElementById("my-clubs-grid");
+const myClubsEmpty = document.getElementById("my-clubs-empty");
+
+const announcementsPageUpcoming = document.getElementById("announcements-page-upcoming");
+const announcementsPageUpcomingEmpty = document.getElementById("announcements-page-upcoming-empty");
+const announcementsPagePast = document.getElementById("announcements-page-past");
+const announcementsPagePastEmpty = document.getElementById("announcements-page-past-empty");
+
 const viewClubList = document.getElementById("view-club-list");
+const viewMyClubs = document.getElementById("view-my-clubs");
+const viewAnnouncements = document.getElementById("view-announcements");
 const viewClubDetail = document.getElementById("view-club-detail");
 const detailBackBtn = document.getElementById("detail-back-btn");
 const detailBanner = document.getElementById("detail-banner");
@@ -292,17 +309,8 @@ function enterApp() {
   profileMenuName.textContent = `${currentUser.firstName} ${currentUser.lastName}`;
   profileMenuEmail.textContent = currentUser.email;
 
-  showClubList();
+  showView("home");
 }
-
-profileBtn.addEventListener("click", (e) => {
-  e.stopPropagation();
-  profileMenu.classList.toggle("open");
-});
-
-document.addEventListener("click", () => {
-  profileMenu.classList.remove("open");
-});
 
 logoutBtn.addEventListener("click", async () => {
   await supabaseClient.auth.signOut();
@@ -314,15 +322,86 @@ logoutBtn.addEventListener("click", async () => {
   hideVerifyPanel("register");
 });
 
-brandHomeBtn.addEventListener("click", showClubList);
+// ---------- sidebar navigation ----------
+
+const viewPanelsMap = {
+  home: viewClubList,
+  "my-clubs": viewMyClubs,
+  announcements: viewAnnouncements,
+};
+
+let lastListView = "home";
+
+function showView(name) {
+  Object.values(viewPanelsMap).forEach(v => v.classList.remove("active"));
+  viewClubDetail.classList.remove("active");
+  viewPanelsMap[name].classList.add("active");
+  sidebarNavItems.forEach(item => item.classList.toggle("active", item.dataset.nav === name));
+  closeSidebar();
+
+  if (name === "home") {
+    lastListView = "home";
+    renderClubs();
+    loadAnnouncements();
+  } else if (name === "my-clubs") {
+    lastListView = "my-clubs";
+    renderMyClubs();
+  } else if (name === "announcements") {
+    loadAnnouncementsPage();
+  }
+}
+
+navHomeBtn.addEventListener("click", () => showView("home"));
+navMyClubsBtn.addEventListener("click", () => showView("my-clubs"));
+navAnnouncementsBtn.addEventListener("click", () => showView("announcements"));
+brandHomeBtn.addEventListener("click", () => showView("home"));
+
+function openSidebar() {
+  appSidebar.classList.add("open");
+  sidebarOverlay.classList.add("open");
+}
+
+function closeSidebar() {
+  appSidebar.classList.remove("open");
+  sidebarOverlay.classList.remove("open");
+}
+
+hamburgerBtn.addEventListener("click", openSidebar);
+sidebarOverlay.addEventListener("click", closeSidebar);
 
 // ---------- club list / detail navigation ----------
 
-function showClubList() {
-  viewClubList.classList.add("active");
-  viewClubDetail.classList.remove("active");
-  renderClubs();
-  loadAnnouncements();
+async function renderMyClubs() {
+  const { data: rows, error } = await supabaseClient
+    .from("club_members")
+    .select("*, club:clubs(*, creator:profiles(first_name, last_name))")
+    .eq("user_id", currentUser.id)
+    .eq("status", "approved")
+    .order("applied_at", { ascending: false });
+
+  myClubsGrid.innerHTML = "";
+
+  if (error || !rows || rows.length === 0) {
+    myClubsEmpty.hidden = false;
+    return;
+  }
+  myClubsEmpty.hidden = true;
+
+  rows.forEach(row => {
+    const club = row.club;
+    const createdByName = `${club.creator.first_name} ${club.creator.last_name}`;
+    const isOwner = club.created_by === currentUser.id;
+    const card = document.createElement("button");
+    card.className = "club-card";
+    card.innerHTML = `
+      <span class="club-badge" data-category="${escapeHtml(club.category)}">${escapeHtml(club.category)}</span>
+      <h3>${escapeHtml(club.name)}${isOwner ? '<span class="club-card-ownertag">Owner</span>' : '<span class="club-card-ownertag" style="color:var(--success);background:var(--success-bg);">Member</span>'}</h3>
+      <p>${escapeHtml(club.description)}</p>
+      <div class="club-card-footer">${club.status === "pending" ? "Awaiting admin approval" : "by " + escapeHtml(createdByName)}</div>
+    `;
+    card.addEventListener("click", () => showClubDetail({ ...club, createdByName }));
+    myClubsGrid.appendChild(card);
+  });
 }
 
 let currentClubDetail = null;
@@ -330,7 +409,7 @@ let currentClubIsOwner = false;
 
 async function showClubDetail(club) {
   currentClubDetail = club;
-  viewClubList.classList.remove("active");
+  Object.values(viewPanelsMap).forEach(v => v.classList.remove("active"));
   viewClubDetail.classList.add("active");
 
   detailTabs.forEach(t => t.classList.toggle("active", t.dataset.detailTab === "overview"));
@@ -359,7 +438,7 @@ async function showClubDetail(club) {
   await loadClubEvents(club);
 }
 
-detailBackBtn.addEventListener("click", showClubList);
+detailBackBtn.addEventListener("click", () => showView(lastListView));
 
 detailTabs.forEach(tab => {
   tab.addEventListener("click", () => {
@@ -694,10 +773,24 @@ formEvent.addEventListener("submit", async (e) => {
 
 // ---------- announcements ----------
 
+function renderAnnouncementCard(a, isPast) {
+  const card = document.createElement("div");
+  card.className = "announcement-card" + (isPast ? " is-past" : "");
+  card.innerHTML = `
+    <div class="announcement-card-info">
+      <h4>${escapeHtml(a.title)}</h4>
+      ${a.event_date ? `<p class="announcement-card-date">${formatEventDate(a.event_date)}</p>` : ""}
+      <p class="announcement-card-description">${escapeHtml(a.description || "")}</p>
+    </div>
+  `;
+  return card;
+}
+
 async function loadAnnouncements() {
   const { data: announcements, error } = await supabaseClient
     .from("announcements")
     .select("*")
+    .order("event_date", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -705,21 +798,39 @@ async function loadAnnouncements() {
     return;
   }
 
-  announcementsSection.hidden = announcements.length === 0;
-  announcementsList.innerHTML = "";
+  const now = new Date();
+  const upcoming = announcements.filter(a => !a.event_date || new Date(a.event_date) >= now);
 
-  announcements.forEach(a => {
-    const card = document.createElement("div");
-    card.className = "announcement-card";
-    card.innerHTML = `
-      <div class="announcement-card-info">
-        <h4>${escapeHtml(a.title)}</h4>
-        ${a.event_date ? `<p class="announcement-card-date">${formatEventDate(a.event_date)}</p>` : ""}
-        <p class="announcement-card-description">${escapeHtml(a.description || "")}</p>
-      </div>
-    `;
-    announcementsList.appendChild(card);
-  });
+  announcementsSection.hidden = upcoming.length === 0;
+  announcementsList.innerHTML = "";
+  upcoming.forEach(a => announcementsList.appendChild(renderAnnouncementCard(a, false)));
+}
+
+async function loadAnnouncementsPage() {
+  const { data: announcements, error } = await supabaseClient
+    .from("announcements")
+    .select("*")
+    .order("event_date", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  const now = new Date();
+  const upcoming = announcements.filter(a => !a.event_date || new Date(a.event_date) >= now);
+  const past = announcements
+    .filter(a => a.event_date && new Date(a.event_date) < now)
+    .sort((a, b) => new Date(b.event_date) - new Date(a.event_date));
+
+  announcementsPageUpcoming.innerHTML = "";
+  announcementsPageUpcomingEmpty.hidden = upcoming.length !== 0;
+  upcoming.forEach(a => announcementsPageUpcoming.appendChild(renderAnnouncementCard(a, false)));
+
+  announcementsPagePast.innerHTML = "";
+  announcementsPagePastEmpty.hidden = past.length !== 0;
+  past.forEach(a => announcementsPagePast.appendChild(renderAnnouncementCard(a, true)));
 }
 
 async function renderClubs() {
@@ -842,7 +953,7 @@ formCreateClub.addEventListener("submit", async (e) => {
   }
 
   closeModal();
-  showClubList();
+  showView("my-clubs");
   showToast("Club submitted! An admin will review it before it appears publicly.");
 });
 
