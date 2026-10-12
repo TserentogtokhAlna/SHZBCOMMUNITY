@@ -7,9 +7,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="site-body">
 
 <div class="bg-grid" aria-hidden="true"></div>
 <div class="bg-glow" aria-hidden="true"></div>
@@ -17,14 +20,14 @@
 <!-- ===================== AUTH VIEW ===================== -->
 <section id="view-auth" class="auth-view">
   <div class="auth-card">
-    <div class="logo-badge auth-logo"><img src="logo.jpg" alt="Shine Zuun Bileg logo"></div>
+    <img class="auth-crest" src="crest.png" alt="Shine Zuun Bileg logo">
     <h1 class="auth-title">Shine Zuun Bileg</h1>
-    <p class="auth-subtitle">// connecting students with school clubs</p>
+    <p class="auth-subtitle">Connecting students with school clubs</p>
 
     <!-- Tabs -->
     <div class="auth-tabs" id="auth-tabs">
       <button class="auth-tab active" data-tab="register">Register</button>
-      <button class="auth-tab" data-tab="login">Login</button>
+      <button class="auth-tab" data-tab="login">Log in</button>
     </div>
 
     <!-- Register form -->
@@ -39,11 +42,11 @@
       <div class="form-row">
         <div class="field">
           <label for="reg-firstname">First name</label>
-          <input type="text" id="reg-firstname" required>
+          <input type="text" id="reg-firstname" placeholder="Enter your first name" required>
         </div>
         <div class="field">
           <label for="reg-lastname">Last name</label>
-          <input type="text" id="reg-lastname" required>
+          <input type="text" id="reg-lastname" placeholder="Enter your last name" required>
         </div>
       </div>
       <div class="form-row" id="reg-grade-row">
@@ -73,14 +76,23 @@
       </div>
       <div class="field">
         <label for="reg-password">Password</label>
-        <input type="password" id="reg-password" minlength="6" required>
+        <div class="password-field">
+          <input type="password" id="reg-password" minlength="6" placeholder="Enter your password" required>
+          <button type="button" class="password-toggle" data-toggle-password="reg-password" aria-label="Show password"></button>
+        </div>
       </div>
       <div class="field">
         <label for="reg-password-confirm">Confirm password</label>
-        <input type="password" id="reg-password-confirm" minlength="6" required>
+        <div class="password-field">
+          <input type="password" id="reg-password-confirm" minlength="6" placeholder="Confirm your password" required>
+          <button type="button" class="password-toggle" data-toggle-password="reg-password-confirm" aria-label="Show password"></button>
+        </div>
       </div>
       <p class="form-error" id="register-error"></p>
-      <button type="submit" class="btn btn-primary btn-block">Create account</button>
+      <button type="submit" class="btn btn-primary btn-block btn-with-icon">
+        Create account
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
     </form>
 
     <!-- Login form -->
@@ -91,10 +103,16 @@
       </div>
       <div class="field">
         <label for="login-password">Password</label>
-        <input type="password" id="login-password" required>
+        <div class="password-field">
+          <input type="password" id="login-password" placeholder="Enter your password" required>
+          <button type="button" class="password-toggle" data-toggle-password="login-password" aria-label="Show password"></button>
+        </div>
       </div>
       <p class="form-error" id="login-error"></p>
-      <button type="submit" class="btn btn-primary btn-block">Log in</button>
+      <button type="submit" class="btn btn-primary btn-block btn-with-icon">
+        Log in
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
     </form>
 
     <!-- Email verification panel -->
@@ -121,7 +139,7 @@
     <button class="hamburger-btn" id="hamburger-btn" aria-label="Open menu">
       <span></span><span></span><span></span>
     </button>
-    <div class="logo-badge mobile-logo"><img src="logo.jpg" alt="Shine Zuun Bileg logo"></div>
+    <div class="logo-badge mobile-logo"><img src="crest.png" alt="Shine Zuun Bileg logo"></div>
     <span class="mobile-title">Shine Zuun Bileg</span>
   </div>
 
@@ -129,7 +147,7 @@
 
   <aside class="app-sidebar" id="app-sidebar">
     <button class="sidebar-brand" id="brand-home-btn">
-      <div class="logo-badge sidebar-logo"><img src="logo.jpg" alt="Shine Zuun Bileg logo"></div>
+      <div class="logo-badge sidebar-logo"><img src="crest.png" alt="Shine Zuun Bileg logo"></div>
       <span class="sidebar-brand-text">
         <span class="sidebar-brand-name">Shine Zuun Bileg</span>
         <span class="sidebar-brand-sub">Clubs</span>
@@ -138,28 +156,32 @@
 
     <nav class="sidebar-nav">
       <button class="sidebar-nav-item active" data-nav="home" id="nav-home-btn">
-        <span class="sidebar-nav-icon">&#8962;</span> Home
+        <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9v12h5v-6h4v6h5V9"/></svg>
+        Home
       </button>
       <button class="sidebar-nav-item" data-nav="my-clubs" id="nav-my-clubs-btn">
-        <span class="sidebar-nav-icon">&#9737;</span> My Clubs
+        <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg>
+        My Clubs
       </button>
       <button class="sidebar-nav-item" data-nav="announcements" id="nav-announcements-btn">
-        <span class="sidebar-nav-icon">&#128276;</span> Announcements
+        <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4a1 1 0 0 0 1 1h3l7 4.5v-15L7 9H4a1 1 0 0 0-1 1z"/><path d="M18 9a4 4 0 0 1 0 6"/><path d="M8 15l1.5 5h2.5"/></svg>
+        Announcements
       </button>
       <button class="sidebar-nav-item" data-nav="students" id="nav-students-btn">
-        <span class="sidebar-nav-icon">&#128101;</span> Students
+        <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14a5 5 0 0 1 5 5"/></svg>
+        Students
+      </button>
+      <button class="sidebar-nav-item" data-nav="profile" id="sidebar-profile-btn">
+        <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3"/><path d="M6.5 18.5a6.5 6.5 0 0 1 11 0"/></svg>
+        My Profile
       </button>
     </nav>
 
     <div class="sidebar-footer">
-      <button class="sidebar-profile" id="sidebar-profile-btn">
-        <span class="profile-avatar" id="profile-btn"></span>
-        <span class="sidebar-profile-info">
-          <span class="sidebar-profile-name" id="profile-menu-name"></span>
-          <span class="sidebar-profile-email" id="profile-menu-email"></span>
-        </span>
+      <button class="sidebar-logout-btn" id="logout-btn">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><path d="M15 16l4-4-4-4"/><path d="M19 12H9"/></svg>
+        Log out
       </button>
-      <button class="sidebar-logout-btn" id="logout-btn">Log out</button>
     </div>
   </aside>
 
@@ -167,37 +189,55 @@
 
     <!-- Home / club list -->
     <section id="view-club-list" class="view-panel active">
-      <div id="announcements-section" hidden>
-        <div class="panel-heading">
-          <h2>Announcements</h2>
+      <div class="home-hero">
+        <div class="home-hero-text">
+          <p class="home-hero-kicker">Welcome to</p>
+          <h1 class="home-hero-title">SHZB Community</h1>
+          <p class="home-hero-sub">Explore clubs, get involved, and be part of something bigger.</p>
         </div>
-        <div id="announcements-list" class="announcements-list"></div>
+        <div class="search-box home-search">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" id="club-search" placeholder="Search clubs..." aria-label="Search clubs">
+        </div>
       </div>
 
-      <div class="panel-heading">
-        <h2>All Clubs</h2>
-        <p class="panel-subtext">Browse clubs created by students at Shine Zuun Bileg</p>
-      </div>
-      <div class="category-filters" id="category-filters">
-        <button class="category-filter-btn active" data-category-filter="All">All</button>
-        <button class="category-filter-btn" data-category-filter="Academic">Academic</button>
-        <button class="category-filter-btn" data-category-filter="Arts">Arts</button>
-        <button class="category-filter-btn" data-category-filter="Sports">Sports</button>
-        <button class="category-filter-btn" data-category-filter="Technology">Technology</button>
-        <button class="category-filter-btn" data-category-filter="Volunteer">Volunteer</button>
-        <button class="category-filter-btn" data-category-filter="Other">Other</button>
+      <div class="home-toolbar">
+        <div class="category-filters" id="category-filters">
+          <button class="category-filter-btn active" data-category-filter="All">All</button>
+          <button class="category-filter-btn" data-category-filter="Academic">Academic</button>
+          <button class="category-filter-btn" data-category-filter="Arts">Arts</button>
+          <button class="category-filter-btn" data-category-filter="Sports">Sports</button>
+          <button class="category-filter-btn" data-category-filter="Technology">Technology</button>
+          <button class="category-filter-btn" data-category-filter="Volunteer">Volunteer</button>
+          <button class="category-filter-btn" data-category-filter="Other">Other</button>
+        </div>
+        <button id="fab-create-club" class="btn btn-accent btn-with-icon" title="Create a new club">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Create a Club
+        </button>
       </div>
       <div id="club-grid" class="club-grid"></div>
       <div id="club-empty" class="empty-state" hidden>
-        <p>No clubs yet. Be the first to create one!</p>
+        <p>No clubs found. Be the first to create one!</p>
+      </div>
+
+      <div id="announcements-section" class="home-announcements" hidden>
+        <h3 class="section-subheading">Upcoming announcements</h3>
+        <div id="announcements-list" class="announcements-list compact"></div>
       </div>
     </section>
 
     <!-- My Clubs -->
     <section id="view-my-clubs" class="view-panel">
-      <div class="panel-heading">
-        <h2>My Clubs</h2>
-        <p class="panel-subtext">Clubs you've created or joined</p>
+      <div class="panel-heading panel-heading-row">
+        <div>
+          <h2>My Clubs</h2>
+          <p class="panel-subtext">Clubs you've created or joined</p>
+        </div>
+        <button id="my-clubs-create-btn" class="btn btn-accent btn-with-icon">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Create a Club
+        </button>
       </div>
       <div id="my-clubs-grid" class="club-grid"></div>
       <div id="my-clubs-empty" class="empty-state" hidden>
@@ -209,59 +249,89 @@
     <section id="view-announcements" class="view-panel">
       <div class="panel-heading">
         <h2>Announcements</h2>
-        <p class="panel-subtext">School-wide news and one-time events</p>
+        <p class="panel-subtext">Stay updated with school-wide news and upcoming events.</p>
       </div>
 
-      <h3 class="section-subheading">Upcoming</h3>
-      <div id="announcements-page-upcoming" class="announcements-list"></div>
-      <p class="empty-state" id="announcements-page-upcoming-empty" hidden>No upcoming announcements.</p>
+      <div class="category-filters" id="announcement-filters">
+        <button class="category-filter-btn active" data-announcement-filter="all">All</button>
+        <button class="category-filter-btn" data-announcement-filter="upcoming">Upcoming</button>
+        <button class="category-filter-btn" data-announcement-filter="past">Past</button>
+      </div>
 
-      <h3 class="section-subheading">Past</h3>
-      <div id="announcements-page-past" class="announcements-list"></div>
-      <p class="empty-state" id="announcements-page-past-empty" hidden>No past announcements.</p>
+      <div id="announcements-upcoming-group">
+        <h3 class="section-subheading">Upcoming</h3>
+        <div id="announcements-page-upcoming" class="announcements-list"></div>
+        <p class="empty-state" id="announcements-page-upcoming-empty" hidden>No upcoming announcements.</p>
+      </div>
+
+      <div id="announcements-past-group">
+        <h3 class="section-subheading">Past</h3>
+        <div id="announcements-page-past" class="announcements-list"></div>
+        <p class="empty-state" id="announcements-page-past-empty" hidden>No past announcements.</p>
+      </div>
     </section>
 
     <!-- Students directory -->
     <section id="view-students" class="view-panel">
       <div class="panel-heading">
         <h2>Students</h2>
-        <p class="panel-subtext">Search for other students at Shine Zuun Bileg</p>
+        <p class="panel-subtext">Meet the students and teachers in the SHZB community.</p>
       </div>
-      <div class="field search-field">
-        <input type="text" id="students-search" placeholder="Search by name...">
+      <div class="people-toolbar">
+        <div class="category-filters" id="people-filters">
+          <button class="category-filter-btn active" data-people-filter="all">All</button>
+          <button class="category-filter-btn" data-people-filter="student">Students</button>
+          <button class="category-filter-btn" data-people-filter="teacher">Teachers</button>
+        </div>
+        <div class="search-box">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" id="students-search" placeholder="Search by name..." aria-label="Search by name">
+        </div>
       </div>
-      <div id="students-grid" class="club-grid"></div>
-      <p class="empty-state" id="students-empty" hidden>No students found.</p>
+      <div id="students-grid" class="people-grid"></div>
+      <p class="empty-state" id="students-empty" hidden>No one found.</p>
     </section>
 
     <!-- Student profile -->
     <section id="view-student-profile" class="view-panel">
-      <button class="back-btn" id="student-profile-back-btn">&larr; Back to students</button>
+      <button class="back-btn" id="student-profile-back-btn">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+        <span id="student-profile-back-label">Back to students</span>
+      </button>
 
-      <div class="club-detail-card">
-        <div class="profile-header">
-          <span class="member-row-avatar profile-header-avatar" id="student-profile-avatar"></span>
-          <div>
-            <h2 id="student-profile-name"></h2>
-            <p class="club-detail-meta" id="student-profile-meta"></p>
-          </div>
-          <button class="btn btn-secondary btn-sm" id="student-profile-edit-btn" hidden>Edit Profile</button>
+      <div class="profile-card profile-header">
+        <span class="profile-header-avatar" id="student-profile-avatar"></span>
+        <div class="profile-header-info">
+          <h2 id="student-profile-name"></h2>
+          <p class="profile-header-meta" id="student-profile-meta"></p>
         </div>
+        <button class="btn btn-secondary btn-sm" id="student-profile-edit-btn" hidden>Edit Profile</button>
+      </div>
 
-        <div class="club-detail-panel active">
-          <h3>Bio</h3>
-          <p id="student-profile-bio"></p>
+      <div class="profile-card">
+        <h3 class="profile-card-title">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
+          Bio
+        </h3>
+        <p class="profile-bio" id="student-profile-bio"></p>
+      </div>
 
-          <h3>Club History</h3>
-          <div id="student-profile-history" class="members-list"></div>
-          <p class="empty-state" id="student-profile-history-empty" hidden>No club history yet.</p>
-        </div>
+      <div class="profile-card">
+        <h3 class="profile-card-title">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          Club Participation History
+        </h3>
+        <div id="student-profile-history" class="history-timeline"></div>
+        <p class="empty-state" id="student-profile-history-empty" hidden>No club history yet.</p>
       </div>
     </section>
 
     <!-- Club detail -->
     <section id="view-club-detail" class="view-panel">
-      <button class="back-btn" id="detail-back-btn">&larr; Back to clubs</button>
+      <button class="back-btn" id="detail-back-btn">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
+        Back to clubs
+      </button>
 
       <div class="club-detail-card">
         <div class="club-banner" id="detail-banner">
@@ -319,9 +389,6 @@
     </section>
 
   </main>
-
-  <!-- Floating action button -->
-  <button id="fab-create-club" class="fab" title="Create a new club">+</button>
 
   <div id="toast" class="toast" hidden></div>
 

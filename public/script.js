@@ -27,10 +27,7 @@ const verifyCodeInput = document.getElementById("verify-code");
 const resendCodeBtn = document.getElementById("resend-code-btn");
 const verifyBackBtn = document.getElementById("verify-back-btn");
 
-const profileBtn = document.getElementById("profile-btn");
 const sidebarProfileBtn = document.getElementById("sidebar-profile-btn");
-const profileMenuName = document.getElementById("profile-menu-name");
-const profileMenuEmail = document.getElementById("profile-menu-email");
 const logoutBtn = document.getElementById("logout-btn");
 const brandHomeBtn = document.getElementById("brand-home-btn");
 
@@ -119,6 +116,65 @@ const modalCloseBtn = document.getElementById("modal-close-btn");
 const modalCancelBtn = document.getElementById("modal-cancel-btn");
 const formCreateClub = document.getElementById("form-create-club");
 const createClubError = document.getElementById("create-club-error");
+
+// ---------- icons ----------
+// Inline SVG paths (24x24, stroked) so icons inherit the text colour and
+// need no extra requests or icon font.
+
+const ICON_PATHS = {
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14a5 5 0 0 1 5 5"/>',
+  arrowRight: '<path d="M5 12h14M13 6l6 6-6 6"/>',
+  chevronRight: '<path d="m9 6 6 6-6 6"/>',
+  calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  gradCap: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"/><path d="M22 9v6"/>',
+  book: '<path d="M2 5.5C4.5 4 8 4 12 6c4-2 7.5-2 10-.5V19c-2.5-1.5-6-1.5-10 .5-4-2-7.5-2-10-.5z"/><path d="M12 6v13.5"/>',
+  eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  eyeOff: '<path d="M3 3l18 18"/><path d="M10.6 5.1A10.6 10.6 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.6C3.8 8.4 2 12 2 12s3.5 7 10 7a9.7 9.7 0 0 0 4.4-1.1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
+  atom: '<circle cx="12" cy="12" r="1.6"/><ellipse cx="12" cy="12" rx="10" ry="4"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/>',
+  palette: '<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 2-2 0-.6-.3-1-.6-1.4-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2H17a4 4 0 0 0 4-4c0-4.3-4-7.3-9-7.3z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/>',
+  ball: '<circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5v19"/><path d="M5.3 5.3a9.5 9.5 0 0 1 0 13.4M18.7 5.3a9.5 9.5 0 0 0 0 13.4"/>',
+  code: '<path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/>',
+  heart: '<path d="M12 20s-7.5-4.6-9.2-9.3C1.7 7.4 3.8 4.5 7 4.5c2 0 3.3 1.1 5 3 1.7-1.9 3-3 5-3 3.2 0 5.3 2.9 4.2 6.2C19.5 15.4 12 20 12 20z"/>',
+  leaf: '<path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15"/><path d="M5 19c3-4 6-6.5 9.5-8.5"/>',
+};
+
+const CATEGORY_ICONS = {
+  Academic: "atom",
+  Arts: "palette",
+  Sports: "ball",
+  Technology: "code",
+  Volunteer: "heart",
+  Other: "leaf",
+};
+
+function icon(name) {
+  return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${ICON_PATHS[name] || ""}</svg>`;
+}
+
+function categoryIcon(category) {
+  return icon(CATEGORY_ICONS[category] || "leaf");
+}
+
+// ---------- show / hide password ----------
+
+const passwordToggles = document.querySelectorAll("[data-toggle-password]");
+
+function setPasswordVisible(btn, visible) {
+  const input = document.getElementById(btn.dataset.togglePassword);
+  input.type = visible ? "text" : "password";
+  btn.innerHTML = icon(visible ? "eyeOff" : "eye");
+  btn.setAttribute("aria-label", visible ? "Hide password" : "Show password");
+}
+
+passwordToggles.forEach(btn => {
+  setPasswordVisible(btn, false);
+  btn.addEventListener("click", () => {
+    const input = document.getElementById(btn.dataset.togglePassword);
+    setPasswordVisible(btn, input.type === "password");
+  });
+});
 
 // ---------- auth tab switching ----------
 
@@ -363,11 +419,6 @@ function enterApp() {
   viewApp.style.display = "block";
   hideVerifyPanel("register");
 
-  const initials = (currentUser.firstName[0] || "") + (currentUser.lastName[0] || "");
-  profileBtn.textContent = initials.toUpperCase();
-  profileMenuName.textContent = `${currentUser.firstName} ${currentUser.lastName}`;
-  profileMenuEmail.textContent = currentUser.email;
-
   showView("home");
 }
 
@@ -378,6 +429,7 @@ logoutBtn.addEventListener("click", async () => {
   viewAuth.style.display = "flex";
   formLogin.reset();
   formRegister.reset();
+  passwordToggles.forEach(btn => setPasswordVisible(btn, false));
   hideVerifyPanel("register");
 });
 
@@ -429,12 +481,32 @@ brandHomeBtn.addEventListener("click", () => showView("home"));
 // ---------- students directory ----------
 
 let allStudentsCache = [];
+let activePeopleFilter = "all";
+
+const peopleFilterButtons = document.querySelectorAll("[data-people-filter]");
+peopleFilterButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    peopleFilterButtons.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activePeopleFilter = btn.dataset.peopleFilter;
+    applyStudentSearch();
+  });
+});
+
+function profileSubtitle(profile) {
+  if (profile.account_type === "teacher") return "Teacher";
+  return formatGradeLabel(profile.graduation_year, profile.class_section) || "Student";
+}
+
+function profileInitials(profile) {
+  return ((profile.first_name[0] || "") + (profile.last_name[0] || "")).toUpperCase();
+}
 
 async function renderStudents() {
   const { data: students, error } = await supabaseClient
     .from("profiles")
     .select("*")
-    .eq("account_type", "student")
+    .in("account_type", ["student", "teacher"])
     .order("first_name", { ascending: true });
 
   if (error) {
@@ -448,21 +520,25 @@ async function renderStudents() {
 
 function applyStudentSearch() {
   const term = studentsSearchInput.value.trim().toLowerCase();
-  const filtered = term
-    ? allStudentsCache.filter(s => `${s.first_name} ${s.last_name}`.toLowerCase().includes(term))
-    : allStudentsCache;
+  const filtered = allStudentsCache.filter(s =>
+    (activePeopleFilter === "all" || s.account_type === activePeopleFilter) &&
+    (!term || `${s.first_name} ${s.last_name}`.toLowerCase().includes(term))
+  );
 
   studentsGrid.innerHTML = "";
   studentsEmpty.hidden = filtered.length !== 0;
 
   filtered.forEach(s => {
-    const initials = (s.first_name[0] || "") + (s.last_name[0] || "");
+    const isTeacher = s.account_type === "teacher";
     const card = document.createElement("button");
-    card.className = "club-card";
+    card.className = "person-card";
     card.innerHTML = `
-      <span class="member-row-avatar" style="margin-bottom:10px;">${escapeHtml(initials.toUpperCase())}</span>
-      <h3>${escapeHtml(s.first_name)} ${escapeHtml(s.last_name)}</h3>
-      <p>${escapeHtml(formatGradeLabel(s.graduation_year, s.class_section) || "")}</p>
+      <span class="person-avatar">${escapeHtml(profileInitials(s))}</span>
+      <span class="person-info">
+        <span class="person-name">${escapeHtml(s.first_name)} ${escapeHtml(s.last_name)}</span>
+        <span class="person-meta">${icon(isTeacher ? "book" : "gradCap")}${escapeHtml(profileSubtitle(s))}</span>
+      </span>
+      <span class="person-chevron">${icon("chevronRight")}</span>
     `;
     card.addEventListener("click", () => showStudentProfile(s));
     studentsGrid.appendChild(card);
@@ -471,7 +547,10 @@ function applyStudentSearch() {
 
 studentsSearchInput.addEventListener("input", applyStudentSearch);
 
-async function viewStudentProfileById(userId) {
+const studentProfileBackLabel = document.getElementById("student-profile-back-label");
+let profileOpenedFromNav = false;
+
+async function viewStudentProfileById(userId, fromNav = false) {
   const { data: profile, error } = await supabaseClient
     .from("profiles")
     .select("*")
@@ -481,28 +560,42 @@ async function viewStudentProfileById(userId) {
     showToast("Could not load that profile.");
     return;
   }
-  showStudentProfile(profile);
+  showStudentProfile(profile, fromNav);
 }
 
-async function showStudentProfile(profile) {
+function formatShortDate(iso) {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+async function showStudentProfile(profile, fromNav = false) {
   hideAllMainViews();
   viewStudentProfile.classList.add("active");
 
-  const initials = (profile.first_name[0] || "") + (profile.last_name[0] || "");
-  studentProfileAvatar.textContent = initials.toUpperCase();
+  // "My Profile" in the sidebar is a top-level page, so it gets the nav
+  // highlight and no back button; profiles opened from a list keep both.
+  profileOpenedFromNav = fromNav;
+  if (fromNav) {
+    sidebarNavItems.forEach(item => item.classList.toggle("active", item.dataset.nav === "profile"));
+    closeSidebar();
+  }
+  studentProfileBackBtn.hidden = fromNav;
+  studentProfileBackLabel.textContent = lastListView === "students" ? "Back to students" : "Back to clubs";
+
+  studentProfileAvatar.textContent = profileInitials(profile);
   studentProfileName.textContent = `${profile.first_name} ${profile.last_name}`;
-  studentProfileMeta.textContent = formatGradeLabel(profile.graduation_year, profile.class_section) || "";
+  studentProfileMeta.textContent = profileSubtitle(profile);
   studentProfileBio.textContent = profile.bio || "No bio yet.";
+  studentProfileBio.classList.toggle("is-empty", !profile.bio);
   studentProfileEditBtn.hidden = profile.id !== currentUser.id;
   studentProfileEditBtn.onclick = () => openEditProfileModal(profile);
 
   studentProfileHistory.innerHTML = "";
   const { data: history, error } = await supabaseClient
     .from("club_members")
-    .select("*, club:clubs(name)")
+    .select("*, club:clubs(name, category, created_by)")
     .eq("user_id", profile.id)
     .in("status", ["approved", "left"])
-    .order("applied_at", { ascending: false });
+    .order("applied_at", { ascending: true });
 
   if (error || !history || history.length === 0) {
     studentProfileHistoryEmpty.hidden = false;
@@ -511,17 +604,38 @@ async function showStudentProfile(profile) {
   studentProfileHistoryEmpty.hidden = true;
 
   history.forEach(h => {
-    const row = document.createElement("div");
-    row.className = "member-row";
-    const joined = formatDateOnly(h.applied_at);
-    const statusText = h.status === "left" && h.left_at
-      ? `Joined ${joined} · Left ${formatDateOnly(h.left_at)}`
-      : `Joined ${joined} · Current member`;
-    row.innerHTML = `
-      <div class="member-row-name">${escapeHtml(h.club ? h.club.name : "Deleted club")}</div>
-      <span class="club-card-footer">${statusText}</span>
+    const isCurrent = h.status === "approved";
+    const club = h.club;
+    const role = club && club.created_by === profile.id ? "Founder" : "Member";
+    const joined = formatShortDate(h.applied_at);
+    const item = document.createElement("div");
+    item.className = "history-item" + (isCurrent ? " is-current" : "");
+    item.innerHTML = `
+      <span class="history-dot" aria-hidden="true"></span>
+      <div class="history-card">
+        <span class="history-icon" data-category="${escapeHtml(club ? club.category : "Other")}">${categoryIcon(club ? club.category : "Other")}</span>
+        <div class="history-body">
+          <h4>${escapeHtml(club ? club.name : "Deleted club")}</h4>
+          <span class="history-status">${isCurrent ? "Current Member" : "Past Member"}</span>
+          <div class="history-meta">
+            <div class="history-meta-item">
+              ${icon("user")}
+              <div><span class="history-meta-label">Role</span><span class="history-meta-value">${role}</span></div>
+            </div>
+            <div class="history-meta-item">
+              ${icon("calendar")}
+              <div><span class="history-meta-label">Joined</span><span class="history-meta-value">${joined}${isCurrent ? ' <span class="history-active">· Currently active</span>' : ""}</span></div>
+            </div>
+            ${!isCurrent && h.left_at ? `
+            <div class="history-meta-item">
+              ${icon("calendar")}
+              <div><span class="history-meta-label">Left</span><span class="history-meta-value">${formatShortDate(h.left_at)}</span></div>
+            </div>` : ""}
+          </div>
+        </div>
+      </div>
     `;
-    studentProfileHistory.appendChild(row);
+    studentProfileHistory.appendChild(item);
   });
 }
 
@@ -570,10 +684,10 @@ formEditProfile.addEventListener("submit", async (e) => {
   currentUser.bio = bio;
   closeEditProfileModal();
   showToast("Profile updated.");
-  await viewStudentProfileById(currentUser.id);
+  await viewStudentProfileById(currentUser.id, profileOpenedFromNav);
 });
 
-sidebarProfileBtn.addEventListener("click", () => viewStudentProfileById(currentUser.id));
+sidebarProfileBtn.addEventListener("click", () => viewStudentProfileById(currentUser.id, true));
 
 function openSidebar() {
   appSidebar.classList.add("open");
@@ -606,21 +720,67 @@ async function renderMyClubs() {
   }
   myClubsEmpty.hidden = true;
 
+  const memberCounts = await fetchMemberCounts(rows.map(r => r.club.id));
+
   rows.forEach(row => {
     const club = row.club;
     const createdByName = `${club.creator.first_name} ${club.creator.last_name}`;
     const isOwner = club.created_by === currentUser.id;
-    const card = document.createElement("button");
-    card.className = "club-card";
-    card.innerHTML = `
-      <span class="club-badge" data-category="${escapeHtml(club.category)}">${escapeHtml(club.category)}</span>
-      <h3>${escapeHtml(club.name)}${isOwner ? '<span class="club-card-ownertag">Owner</span>' : '<span class="club-card-ownertag" style="color:var(--success);background:var(--success-bg);">Member</span>'}</h3>
-      <p>${escapeHtml(club.description)}</p>
-      <div class="club-card-footer">${club.status === "pending" ? "Awaiting admin approval" : "by " + escapeHtml(createdByName)}</div>
-    `;
+    const card = buildClubCard(club, {
+      memberCount: memberCounts[club.id] || 0,
+      tag: isOwner
+        ? '<span class="club-card-ownertag">Owner</span>'
+        : '<span class="club-card-ownertag is-member">Member</span>',
+      note: club.status === "pending" ? "Awaiting admin approval" : null,
+    });
     card.addEventListener("click", () => showClubDetail({ ...club, createdByName }));
     myClubsGrid.appendChild(card);
   });
+}
+
+// Approved-member counts for a set of clubs. Approved rows are readable by
+// any signed-in user (see club_members_select_public_history policy).
+async function fetchMemberCounts(clubIds) {
+  const counts = {};
+  if (clubIds.length === 0) return counts;
+  const { data, error } = await supabaseClient
+    .from("club_members")
+    .select("club_id")
+    .eq("status", "approved")
+    .in("club_id", clubIds);
+  if (error) {
+    console.error(error);
+    return counts;
+  }
+  data.forEach(r => { counts[r.club_id] = (counts[r.club_id] || 0) + 1; });
+  return counts;
+}
+
+function buildClubCard(club, { memberCount = 0, tag = "", note = null } = {}) {
+  const leader = club.creator ? `${club.creator.first_name} ${club.creator.last_name}` : "";
+  const card = document.createElement("button");
+  card.className = "club-card";
+  card.dataset.category = club.category;
+  card.innerHTML = `
+    <span class="club-card-banner" aria-hidden="true"></span>
+    <span class="club-card-head">
+      <span class="club-card-icon">${categoryIcon(club.category)}</span>
+      <span class="club-card-title">
+        <span class="club-card-tags">
+          <span class="club-badge" data-category="${escapeHtml(club.category)}">${escapeHtml(club.category)}</span>
+          ${tag}
+        </span>
+        <h3>${escapeHtml(club.name)}</h3>
+        ${leader ? `<span class="club-card-leader">${icon("user")}Led by <strong>${escapeHtml(leader)}</strong></span>` : ""}
+      </span>
+    </span>
+    <p class="club-card-desc">${escapeHtml(club.description)}</p>
+    <span class="club-card-bottom">
+      <span class="club-card-members">${note ? escapeHtml(note) : `${icon("users")}${memberCount} member${memberCount === 1 ? "" : "s"}`}</span>
+      <span class="club-card-arrow">${icon("arrowRight")}</span>
+    </span>
+  `;
+  return card;
 }
 
 let currentClubDetail = null;
@@ -638,7 +798,7 @@ async function showClubDetail(club) {
   detailPanelManage.classList.remove("active");
 
   detailBanner.dataset.category = club.category;
-  detailLogo.textContent = club.name.slice(0, 2).toUpperCase();
+  detailLogo.innerHTML = categoryIcon(club.category);
   detailCategory.textContent = club.category;
   detailCategory.dataset.category = club.category;
   detailName.textContent = club.name;
@@ -1049,18 +1209,62 @@ formEvent.addEventListener("submit", async (e) => {
 
 // ---------- announcements ----------
 
-function renderAnnouncementCard(a, isPast) {
-  const card = document.createElement("div");
-  card.className = "announcement-card" + (isPast ? " is-past" : "");
+function renderAnnouncementCard(a, isPast, compact = false) {
+  const card = document.createElement("article");
+  card.className = "announcement-card" + (isPast ? " is-past" : "") + (compact ? " is-compact" : "");
+
+  let tagText = "Announcement";
+  let tagClass = "is-news";
+  if (a.event_date) {
+    tagText = isPast ? "Past Event" : "Upcoming Event";
+    tagClass = isPast ? "is-past" : "is-upcoming";
+  }
+
+  let eventBlock = "";
+  if (a.event_date) {
+    const d = new Date(a.event_date);
+    const dateText = d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
+    const timeText = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    eventBlock = compact
+      ? `<p class="announcement-card-date">${icon("calendar")}${dateText} · ${timeText}</p>`
+      : `
+        <div class="announcement-poster">
+          <span class="announcement-poster-kicker">SHZB Announcement</span>
+          <span class="announcement-poster-title">${escapeHtml(a.title)}</span>
+          <span class="announcement-poster-row">${icon("calendar")}${dateText}</span>
+          <span class="announcement-poster-row">${icon("clock")}${timeText}</span>
+        </div>`;
+  }
+
   card.innerHTML = `
-    <div class="announcement-card-info">
-      <h4>${escapeHtml(a.title)}</h4>
-      ${a.event_date ? `<p class="announcement-card-date">${formatEventDate(a.event_date)}</p>` : ""}
-      <p class="announcement-card-description">${escapeHtml(a.description || "")}</p>
-    </div>
+    <header class="announcement-card-head">
+      <img class="announcement-card-crest" src="crest.png" alt="">
+      <span class="announcement-card-source">
+        <strong>Shine Zuun Bileg</strong>
+        <span>Posted on ${formatShortDate(a.created_at)}</span>
+      </span>
+      <span class="announcement-tag ${tagClass}">${tagText}</span>
+    </header>
+    <h4>${escapeHtml(a.title)}</h4>
+    <p class="announcement-card-description">${escapeHtml(a.description || "")}</p>
+    ${eventBlock}
   `;
   return card;
 }
+
+const announcementFilterButtons = document.querySelectorAll("[data-announcement-filter]");
+const announcementsUpcomingGroup = document.getElementById("announcements-upcoming-group");
+const announcementsPastGroup = document.getElementById("announcements-past-group");
+
+announcementFilterButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    announcementFilterButtons.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    const filter = btn.dataset.announcementFilter;
+    announcementsUpcomingGroup.hidden = filter === "past";
+    announcementsPastGroup.hidden = filter === "upcoming";
+  });
+});
 
 async function loadAnnouncements() {
   const { data: announcements, error } = await supabaseClient
@@ -1079,7 +1283,7 @@ async function loadAnnouncements() {
 
   announcementsSection.hidden = upcoming.length === 0;
   announcementsList.innerHTML = "";
-  upcoming.forEach(a => announcementsList.appendChild(renderAnnouncementCard(a, false)));
+  upcoming.forEach(a => announcementsList.appendChild(renderAnnouncementCard(a, false, true)));
 }
 
 async function loadAnnouncementsPage() {
@@ -1134,28 +1338,33 @@ async function renderClubs() {
 
   const { data: clubs, error } = await query;
 
+  homeClubs = error || !clubs ? [] : clubs;
+  homeMemberCounts = await fetchMemberCounts(homeClubs.map(c => c.id));
+  applyClubSearch();
+}
+
+let homeClubs = [];
+let homeMemberCounts = {};
+const clubSearchInput = document.getElementById("club-search");
+
+function applyClubSearch() {
+  const term = clubSearchInput.value.trim().toLowerCase();
+  const filtered = term
+    ? homeClubs.filter(c => `${c.name} ${c.description}`.toLowerCase().includes(term))
+    : homeClubs;
+
   clubGrid.innerHTML = "";
+  clubEmpty.hidden = filtered.length !== 0;
 
-  if (error || !clubs || clubs.length === 0) {
-    clubEmpty.hidden = false;
-    return;
-  }
-  clubEmpty.hidden = true;
-
-  clubs.forEach(club => {
+  filtered.forEach(club => {
     const createdByName = `${club.creator.first_name} ${club.creator.last_name}`;
-    const card = document.createElement("button");
-    card.className = "club-card";
-    card.innerHTML = `
-      <span class="club-badge" data-category="${escapeHtml(club.category)}">${escapeHtml(club.category)}</span>
-      <h3>${escapeHtml(club.name)}</h3>
-      <p>${escapeHtml(club.description)}</p>
-      <div class="club-card-footer">by ${escapeHtml(createdByName)}</div>
-    `;
+    const card = buildClubCard(club, { memberCount: homeMemberCounts[club.id] || 0 });
     card.addEventListener("click", () => showClubDetail({ ...club, createdByName }));
     clubGrid.appendChild(card);
   });
 }
+
+clubSearchInput.addEventListener("input", applyClubSearch);
 
 function escapeHtml(str) {
   const div = document.createElement("div");
@@ -1193,6 +1402,7 @@ function closeModal() {
 }
 
 fabCreateClub.addEventListener("click", openCreateClubModal);
+document.getElementById("my-clubs-create-btn").addEventListener("click", openCreateClubModal);
 modalCloseBtn.addEventListener("click", closeModal);
 modalCancelBtn.addEventListener("click", closeModal);
 modalOverlay.addEventListener("click", (e) => {
