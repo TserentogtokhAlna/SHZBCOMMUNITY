@@ -1194,6 +1194,7 @@ declare
   v_raw jsonb;
   v_text text;
   v_value jsonb;
+  v_max_len integer;
 begin
   v_me := public.require_student();
 
@@ -1237,7 +1238,10 @@ begin
       if v_text = '' then
         if q.required then raise exception 'Please answer: %', q.label; end if;
       else
-        if char_length(v_text) > case when q.type = 'short_text' then 300 else 3000 end then
+        -- (the limit is computed first: PL/pgSQL ends an IF condition at the
+        -- first THEN it sees, so a CASE ... THEN inside the condition breaks it)
+        v_max_len := case when q.type = 'short_text' then 300 else 3000 end;
+        if char_length(v_text) > v_max_len then
           raise exception 'Your answer to "%" is too long.', q.label;
         end if;
         v_value := to_jsonb(v_text);
