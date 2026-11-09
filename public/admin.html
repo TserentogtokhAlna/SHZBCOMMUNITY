@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Dashboard - SHZB Community</title>
+<title>Admin Dashboard — SHZB Community</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,69 +13,131 @@
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="admin.css">
 </head>
-<body class="admin-body">
+<body class="site-body admin-site">
 
-<div class="bg-grid" aria-hidden="true"></div>
-<div class="bg-glow admin-glow" aria-hidden="true"></div>
+<div class="app-view admin-app">
 
-<header class="app-header admin-header">
-  <div class="logo-badge header-logo admin-logo"><img src="crest.png" alt="Shine Zuun Bileg logo"></div>
-  <div class="header-title admin-header-title">SHZB Community <span class="admin-tag">ADMIN</span></div>
-  <a class="header-link" href="/index.html#/home">View site</a>
-  <div class="header-profile">
-    <button class="profile-avatar" id="profile-btn" aria-label="Account menu">A</button>
-    <div class="profile-menu" id="profile-menu">
-      <div class="profile-menu-name" id="profile-menu-name"></div>
-      <div class="profile-menu-email" id="profile-menu-email"></div>
-      <a class="profile-menu-link" href="/index.html#/notifications">Notifications <span class="admin-count" id="admin-unread" hidden></span></a>
-      <a class="profile-menu-link" href="/index.html#/profile">Change password</a>
-      <button class="profile-menu-logout" id="logout-btn">Log out</button>
-    </div>
+  <div class="mobile-topbar">
+    <button class="hamburger-btn" id="hamburger-btn" aria-label="Open menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="logo-badge mobile-logo"><img src="crest.png" alt="Shine Zuun Bileg logo"></div>
+    <span class="mobile-title">Admin Dashboard</span>
   </div>
-</header>
 
-<nav class="admin-nav" aria-label="Admin sections">
-  <a class="admin-nav-item" data-section="overview" href="#overview">Overview</a>
-  <a class="admin-nav-item" data-section="approvals" href="#approvals">Approval Center <span class="admin-count" id="nav-pending-count" hidden></span></a>
-  <a class="admin-nav-item" data-section="clubs" href="#clubs">Clubs</a>
-  <a class="admin-nav-item" data-section="users" href="#users">Users</a>
-  <a class="admin-nav-item" data-section="categories" href="#categories">Categories</a>
-  <a class="admin-nav-item" data-section="announcements" href="#announcements">Announcements</a>
-</nav>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-<main class="app-main admin-main">
+  <aside class="app-sidebar" id="app-sidebar">
+    <a class="sidebar-brand" href="#overview">
+      <div class="logo-badge sidebar-logo"><img src="crest.png" alt="Shine Zuun Bileg logo"></div>
+      <span class="sidebar-brand-text">
+        <span class="sidebar-brand-name">Shine Zuun Bileg</span>
+        <span class="sidebar-brand-sub">Administration</span>
+      </span>
+    </a>
 
-  <!-- ========== OVERVIEW ========== -->
-  <section class="admin-panel" id="section-overview">
-    <div class="admin-stats" id="admin-stats"></div>
-    <section class="admin-section">
-      <div class="admin-section-header">
-        <h2>Recently submitted requests</h2>
-        <a class="btn btn-secondary btn-sm" href="#approvals">Open Approval Center</a>
+    <nav class="sidebar-nav" aria-label="Admin sections">
+      <a class="sidebar-nav-item admin-nav-item" data-section="overview" href="#overview">
+        <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg>
+        Overview
+      </a>
+      <a class="sidebar-nav-item admin-nav-item" data-section="approvals" href="#approvals">
+        <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.4 7.5 9.5 4.3-1.1 7.5-4.9 7.5-9.5V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg>
+        Approval Center
+        <span class="nav-badge" id="nav-pending-count" hidden></span>
+      </a>
+      <a class="sidebar-nav-item admin-nav-item" data-section="clubs" href="#clubs">
+        <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg>
+        Clubs
+      </a>
+      <a class="sidebar-nav-item admin-nav-item" data-section="users" href="#users">
+        <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14a5 5 0 0 1 5 5"/></svg>
+        Users
+      </a>
+      <a class="sidebar-nav-item admin-nav-item" data-section="categories" href="#categories">
+        <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>
+        Categories
+      </a>
+      <a class="sidebar-nav-item admin-nav-item" data-section="announcements" href="#announcements">
+        <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4a1 1 0 0 0 1 1h3l7 4.5v-15L7 9H4a1 1 0 0 0-1 1z"/><path d="M18 9a4 4 0 0 1 0 6"/><path d="M8 15l1.5 5h2.5"/></svg>
+        Announcements
+      </a>
+
+      <div class="sidebar-nav-group">
+        <span class="sidebar-nav-label">Community</span>
+        <a class="sidebar-nav-item" href="/index.html#/home">
+          <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9v12h5v-6h4v6h5V9"/></svg>
+          View site
+        </a>
+        <a class="sidebar-nav-item" href="/index.html#/notifications">
+          <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+          Notifications
+          <span class="nav-badge" id="admin-unread" hidden></span>
+        </a>
+        <a class="sidebar-nav-item" href="/index.html#/profile">
+          <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3"/><path d="M6.5 18.5a6.5 6.5 0 0 1 11 0"/></svg>
+          My Profile
+        </a>
       </div>
-      <div class="table-wrap">
-        <table class="admin-table">
-          <thead><tr><th>Type</th><th>Club</th><th>Title</th><th>Submitted</th><th>Status</th><th></th></tr></thead>
-          <tbody id="recent-tbody"></tbody>
-        </table>
-        <p class="empty-state" id="recent-empty" hidden>No requests yet.</p>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <span class="profile-avatar" id="profile-btn">A</span>
+        <span class="sidebar-user-text">
+          <strong id="profile-menu-name"></strong>
+          <span id="profile-menu-email"></span>
+        </span>
       </div>
+      <button class="sidebar-logout-btn" id="logout-btn">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><path d="M15 16l4-4-4-4"/><path d="M19 12H9"/></svg>
+        Log out
+      </button>
+    </div>
+  </aside>
+
+  <main class="app-main admin-main">
+
+    <!-- ========== OVERVIEW ========== -->
+    <section class="admin-panel" id="section-overview">
+      <div class="panel-heading">
+        <p class="admin-kicker">Administration</p>
+        <h2>Overview</h2>
+        <p class="panel-subtext">A snapshot of SHZB Community and everything waiting for your review.</p>
+      </div>
+      <div class="admin-stats" id="admin-stats"></div>
+
+      <section class="admin-section">
+        <div class="admin-section-header">
+          <h3>Recently submitted requests</h3>
+          <a class="btn btn-secondary btn-sm" href="#approvals">Open Approval Center</a>
+        </div>
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>Type</th><th>Club</th><th>Title</th><th>Submitted</th><th>Status</th><th></th></tr></thead>
+            <tbody id="recent-tbody"></tbody>
+          </table>
+          <p class="empty-state" id="recent-empty" hidden>No requests yet.</p>
+        </div>
+      </section>
     </section>
-  </section>
 
-  <!-- ========== APPROVAL CENTER ========== -->
-  <section class="admin-panel" id="section-approvals">
-    <section class="admin-section">
-      <h2>Approval Center</h2>
+    <!-- ========== APPROVAL CENTER ========== -->
+    <section class="admin-panel" id="section-approvals">
+      <div class="panel-heading">
+        <p class="admin-kicker">Administration</p>
+        <h2>Approval Center</h2>
+        <p class="panel-subtext">New clubs, profile changes, recruitment forms, posts and achievements submitted by club leaders.</p>
+      </div>
       <div class="admin-filters">
-        <select id="approvals-status" class="admin-select" aria-label="Status">
+        <select id="approvals-status" class="filter-select" aria-label="Status">
           <option value="pending">Pending</option>
           <option value="changes_requested">Changes requested</option>
           <option value="approved">Approved</option>
           <option value="rejected">Rejected</option>
           <option value="all">All statuses</option>
         </select>
-        <select id="approvals-kind" class="admin-select" aria-label="Request type">
+        <select id="approvals-kind" class="filter-select" aria-label="Request type">
           <option value="all">All types</option>
           <option value="club">New clubs</option>
           <option value="club_change">Club profile changes</option>
@@ -85,7 +147,10 @@
           <option value="post:announcement">Club announcements</option>
           <option value="achievement">Achievements</option>
         </select>
-        <input type="search" class="admin-search" id="approvals-search" placeholder="Search by club, title or person...">
+        <div class="search-box admin-searchbox">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" id="approvals-search" placeholder="Search by club, title or person..." aria-label="Search requests">
+        </div>
       </div>
       <div class="table-wrap">
         <table class="admin-table">
@@ -95,21 +160,26 @@
         <p class="empty-state" id="approvals-empty" hidden>Nothing here. All caught up.</p>
       </div>
     </section>
-  </section>
 
-  <!-- ========== CLUBS ========== -->
-  <section class="admin-panel" id="section-clubs">
-    <section class="admin-section">
-      <h2>Clubs</h2>
+    <!-- ========== CLUBS ========== -->
+    <section class="admin-panel" id="section-clubs">
+      <div class="panel-heading">
+        <p class="admin-kicker">Administration</p>
+        <h2>Clubs</h2>
+        <p class="panel-subtext">Edit clubs, assign leaders, and suspend, archive or delete clubs.</p>
+      </div>
       <div class="admin-filters">
-        <select id="clubs-status" class="admin-select" aria-label="Club status">
+        <select id="clubs-status" class="filter-select" aria-label="Club status">
           <option value="active">Active</option>
           <option value="suspended">Suspended</option>
           <option value="archived">Archived</option>
           <option value="requests">Requests (pending / changes / rejected)</option>
           <option value="all">All</option>
         </select>
-        <input type="search" class="admin-search" id="clubs-search" placeholder="Search clubs by name, category or leader...">
+        <div class="search-box admin-searchbox">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" id="clubs-search" placeholder="Search clubs by name, category or leader..." aria-label="Search clubs">
+        </div>
       </div>
       <div class="table-wrap">
         <table class="admin-table">
@@ -119,26 +189,31 @@
         <p class="empty-state" id="clubs-empty" hidden>No clubs match.</p>
       </div>
     </section>
-  </section>
 
-  <!-- ========== USERS ========== -->
-  <section class="admin-panel" id="section-users">
-    <section class="admin-section">
-      <h2>Users</h2>
+    <!-- ========== USERS ========== -->
+    <section class="admin-panel" id="section-users">
+      <div class="panel-heading">
+        <p class="admin-kicker">Administration</p>
+        <h2>Users</h2>
+        <p class="panel-subtext">Students, teachers and administrators. Edit details, change permissions, suspend or delete accounts.</p>
+      </div>
       <div class="admin-filters">
-        <select id="users-type" class="admin-select" aria-label="Account type">
+        <select id="users-type" class="filter-select" aria-label="Account type">
           <option value="all">All types</option>
           <option value="student">Students</option>
           <option value="teacher">Teachers</option>
           <option value="leader">Club leaders</option>
           <option value="admin">Administrators</option>
         </select>
-        <select id="users-status" class="admin-select" aria-label="Account status">
+        <select id="users-status" class="filter-select" aria-label="Account status">
           <option value="all">Any status</option>
           <option value="active">Active</option>
           <option value="suspended">Suspended</option>
         </select>
-        <input type="search" class="admin-search" id="users-search" placeholder="Search by name, email or grade (e.g. 10B)...">
+        <div class="search-box admin-searchbox">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" id="users-search" placeholder="Search by name, email or grade (e.g. 10B)..." aria-label="Search users">
+        </div>
       </div>
       <p class="results-count" id="users-count"></p>
       <div class="table-wrap">
@@ -150,17 +225,20 @@
       </div>
       <button class="btn btn-secondary load-more-btn" id="users-more-btn" hidden>Show more</button>
     </section>
-  </section>
 
-  <!-- ========== CATEGORIES ========== -->
-  <section class="admin-panel" id="section-categories">
-    <section class="admin-section">
-      <div class="admin-section-header">
+    <!-- ========== CATEGORIES ========== -->
+    <section class="admin-panel" id="section-categories">
+      <div class="panel-heading">
+        <p class="admin-kicker">Administration</p>
         <h2>Club categories</h2>
+        <p class="panel-subtext">Categories appear as filters on the homepage. Renaming one updates every club that uses it.</p>
       </div>
       <form class="admin-inline-form" id="form-category" novalidate>
-        <input type="text" class="admin-search" id="category-name" maxlength="40" placeholder="New category name">
-        <button type="submit" class="btn btn-primary btn-sm">Add category</button>
+        <input type="text" class="admin-search" id="category-name" maxlength="40" placeholder="New category name" aria-label="New category name">
+        <button type="submit" class="btn btn-primary btn-sm btn-with-icon">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Add category
+        </button>
       </form>
       <p class="form-error" id="category-error"></p>
       <div class="table-wrap">
@@ -170,16 +248,26 @@
         </table>
       </div>
     </section>
-  </section>
 
-  <!-- ========== ANNOUNCEMENTS ========== -->
-  <section class="admin-panel" id="section-announcements">
-    <section class="admin-section">
-      <div class="admin-section-header">
-        <h2>School-wide announcements</h2>
-        <button class="btn btn-primary btn-sm" id="new-announcement-btn">+ New Announcement</button>
+    <!-- ========== ANNOUNCEMENTS ========== -->
+    <section class="admin-panel" id="section-announcements">
+      <div class="panel-heading panel-heading-row">
+        <div>
+          <p class="admin-kicker">Administration</p>
+          <h2>School announcements</h2>
+          <p class="panel-subtext">School-wide news posted as Shine Zuun Bileg. These are published immediately.</p>
+        </div>
+        <button class="btn btn-accent btn-with-icon" id="new-announcement-btn">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          New announcement
+        </button>
       </div>
-      <input type="search" class="admin-search" id="announcements-search" placeholder="Search announcements...">
+      <div class="admin-filters">
+        <div class="search-box admin-searchbox">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" id="announcements-search" placeholder="Search announcements..." aria-label="Search announcements">
+        </div>
+      </div>
       <div class="table-wrap">
         <table class="admin-table" id="announcements-table">
           <thead><tr><th>Title</th><th>Event date</th><th>Posted</th><th></th></tr></thead>
@@ -188,9 +276,11 @@
         <p class="empty-state" id="announcements-empty" hidden>No announcements yet.</p>
       </div>
     </section>
-  </section>
 
-</main>
+  </main>
+
+  <div id="toast" class="toast" hidden></div>
+</div>
 
 <!-- ===================== REVIEW MODAL ===================== -->
 <div id="review-modal-overlay" class="modal-overlay">
@@ -219,7 +309,7 @@
 
 <!-- ===================== CLUB MANAGE MODAL ===================== -->
 <div id="club-modal-overlay" class="modal-overlay">
-  <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="club-modal-title">
+  <div class="modal modal-xwide" role="dialog" aria-modal="true" aria-labelledby="club-modal-title">
     <div class="modal-header">
       <h2 id="club-modal-title">Manage club</h2>
       <button class="modal-close" data-close-modal="club-modal-overlay" aria-label="Close">&times;</button>
@@ -328,8 +418,6 @@
     </form>
   </div>
 </div>
-
-<div id="toast" class="toast" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <script src="supabase-config.js"></script>

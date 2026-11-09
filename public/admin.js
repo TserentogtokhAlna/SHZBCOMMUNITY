@@ -9,14 +9,20 @@ const SECTIONS = ["overview", "approvals", "clubs", "users", "categories", "anno
 let profilesById = {};
 let categoriesCache = [];
 
-// ---------- header ----------
+// ---------- sidebar (same shell as the community site) ----------
 
-$("profile-btn").addEventListener("click", (e) => {
-  e.stopPropagation();
-  $("profile-menu").classList.toggle("open");
-});
-document.addEventListener("click", () => $("profile-menu").classList.remove("open"));
-$("profile-menu").addEventListener("click", e => e.stopPropagation());
+function openSidebar() {
+  $("app-sidebar").classList.add("open");
+  $("sidebar-overlay").classList.add("open");
+}
+
+function closeSidebar() {
+  $("app-sidebar").classList.remove("open");
+  $("sidebar-overlay").classList.remove("open");
+}
+
+$("hamburger-btn").addEventListener("click", openSidebar);
+$("sidebar-overlay").addEventListener("click", closeSidebar);
 
 $("logout-btn").addEventListener("click", async () => {
   await supabaseClient.auth.signOut();
@@ -50,6 +56,8 @@ async function showSection() {
   const { name, param } = currentSection();
   document.querySelectorAll(".admin-panel").forEach(p => p.classList.toggle("active", p.id === `section-${name}`));
   document.querySelectorAll(".admin-nav-item").forEach(a => a.classList.toggle("active", a.dataset.section === name));
+  closeSidebar();
+  if (!param) window.scrollTo({ top: 0 });
 
   if (name === "overview") loadOverview();
   if (name === "approvals") loadApprovals();
@@ -111,19 +119,22 @@ async function loadOverview() {
   const leaders = leaderRows.error ? "—" : new Set(leaderRows.data.map(r => r.user_id)).size;
 
   const tiles = [
-    ["Registered students", students, "#users"],
-    ["Teachers", teachers, "#users"],
-    ["Active clubs", activeClubs, "#clubs"],
-    ["Club leaders", leaders, "#users"],
-    ["Active memberships", memberships, "#clubs"],
-    ["Pending club requests", pendingClubs, "#approvals", true],
-    ["Pending content approvals", pendingContent, "#approvals", true],
-    ["Approved events", events, "#approvals"],
+    ["Registered students", students, "#users", "gradCap"],
+    ["Teachers", teachers, "#users", "book"],
+    ["Active clubs", activeClubs, "#clubs", "star"],
+    ["Club leaders", leaders, "#users", "shield"],
+    ["Active memberships", memberships, "#clubs", "users"],
+    ["Pending club requests", pendingClubs, "#approvals", "clock", true],
+    ["Pending content approvals", pendingContent, "#approvals", "list", true],
+    ["Approved events", events, "#approvals", "calendar"],
   ];
-  statsEl.innerHTML = tiles.map(([label, value, href, attention]) => `
+  statsEl.innerHTML = tiles.map(([label, value, href, iconName, attention]) => `
     <a class="stat-card${attention && value > 0 ? " stat-card-pending" : ""}" href="${href}">
-      <div class="stat-value">${value}</div>
-      <div class="stat-label">${label}</div>
+      <span class="stat-icon">${icon(iconName)}</span>
+      <span class="stat-text">
+        <span class="stat-value">${value}</span>
+        <span class="stat-label">${label}</span>
+      </span>
     </a>`).join("");
 
   updatePendingBadge();
