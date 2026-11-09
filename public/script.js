@@ -4,157 +4,61 @@ const SCHOOL_EMAIL_DOMAIN = "@shinezuunbileg.edu.mn";
 // see supabase/migration_003_teacher_type_and_domain_toggle.sql).
 const ENFORCE_SCHOOL_EMAIL_DOMAIN = false;
 
+// The signed-in person. `profile` is their profiles row; the flags below are
+// for showing/hiding UI only — every permission is enforced again by the
+// database (RLS policies + workflow functions in migration 006).
 let currentUser = null;
 let selectedAccountType = "student";
+let categoriesCache = [];
 
-// ---------- elements ----------
+const $ = id => document.getElementById(id);
 
-const viewAuth = document.getElementById("view-auth");
-const viewApp = document.getElementById("view-app");
+// ============================================================
+// AUTH
+// ============================================================
 
-const authTabsEl = document.getElementById("auth-tabs");
+const viewAuth = $("view-auth");
+const viewApp = $("view-app");
+
+const authTabsEl = $("auth-tabs");
 const authTabs = document.querySelectorAll(".auth-tab");
-const formRegister = document.getElementById("form-register");
-const formLogin = document.getElementById("form-login");
-const registerError = document.getElementById("register-error");
-const loginError = document.getElementById("login-error");
+const formRegister = $("form-register");
+const formLogin = $("form-login");
+const registerError = $("register-error");
+const loginError = $("login-error");
 
-const panelVerify = document.getElementById("panel-verify");
-const formVerify = document.getElementById("form-verify");
-const verifyError = document.getElementById("verify-error");
-const verifyEmailDisplay = document.getElementById("verify-email-display");
-const verifyCodeInput = document.getElementById("verify-code");
-const resendCodeBtn = document.getElementById("resend-code-btn");
-const verifyBackBtn = document.getElementById("verify-back-btn");
+const panelVerify = $("panel-verify");
+const formVerify = $("form-verify");
+const verifyError = $("verify-error");
+const verifyEmailDisplay = $("verify-email-display");
+const verifyCodeInput = $("verify-code");
+const resendCodeBtn = $("resend-code-btn");
 
-const sidebarProfileBtn = document.getElementById("sidebar-profile-btn");
-const logoutBtn = document.getElementById("logout-btn");
-const brandHomeBtn = document.getElementById("brand-home-btn");
+const panelForgot = $("panel-forgot");
+const panelReset = $("panel-reset");
 
-const hamburgerBtn = document.getElementById("hamburger-btn");
-const appSidebar = document.getElementById("app-sidebar");
-const sidebarOverlay = document.getElementById("sidebar-overlay");
-const sidebarNavItems = document.querySelectorAll(".sidebar-nav-item");
-const navHomeBtn = document.getElementById("nav-home-btn");
-const navMyClubsBtn = document.getElementById("nav-my-clubs-btn");
-const navAnnouncementsBtn = document.getElementById("nav-announcements-btn");
-const navStudentsBtn = document.getElementById("nav-students-btn");
+// Password-reset links land on this page with the session in the URL hash
+// (#access_token=…&type=recovery). Capture that before anything else runs —
+// supabase-js clears the hash once it has read the session.
+const initialHash = window.location.hash;
+let recoveryMode = /type=recovery/.test(initialHash);
+const authLinkError = (() => {
+  const params = new URLSearchParams(initialHash.replace(/^#/, ""));
+  return params.get("error_description") || null;
+})();
 
-const clubGrid = document.getElementById("club-grid");
-const clubEmpty = document.getElementById("club-empty");
+const AUTH_PANELS = { register: formRegister, login: formLogin, verify: panelVerify, forgot: panelForgot, reset: panelReset };
 
-const myClubsGrid = document.getElementById("my-clubs-grid");
-const myClubsEmpty = document.getElementById("my-clubs-empty");
-
-const announcementsPageUpcoming = document.getElementById("announcements-page-upcoming");
-const announcementsPageUpcomingEmpty = document.getElementById("announcements-page-upcoming-empty");
-const announcementsPagePast = document.getElementById("announcements-page-past");
-const announcementsPagePastEmpty = document.getElementById("announcements-page-past-empty");
-
-const viewClubList = document.getElementById("view-club-list");
-const viewMyClubs = document.getElementById("view-my-clubs");
-const viewAnnouncements = document.getElementById("view-announcements");
-const viewStudents = document.getElementById("view-students");
-const studentsSearchInput = document.getElementById("students-search");
-const studentsGrid = document.getElementById("students-grid");
-const studentsEmpty = document.getElementById("students-empty");
-
-const viewStudentProfile = document.getElementById("view-student-profile");
-const studentProfileBackBtn = document.getElementById("student-profile-back-btn");
-const studentProfileAvatar = document.getElementById("student-profile-avatar");
-const studentProfileName = document.getElementById("student-profile-name");
-const studentProfileMeta = document.getElementById("student-profile-meta");
-const studentProfileEditBtn = document.getElementById("student-profile-edit-btn");
-const studentProfileBio = document.getElementById("student-profile-bio");
-const studentProfileHistory = document.getElementById("student-profile-history");
-const studentProfileHistoryEmpty = document.getElementById("student-profile-history-empty");
-
-const viewClubDetail = document.getElementById("view-club-detail");
-const detailBackBtn = document.getElementById("detail-back-btn");
-const detailBanner = document.getElementById("detail-banner");
-const detailLogo = document.getElementById("detail-logo");
-const detailCategory = document.getElementById("detail-category");
-const detailName = document.getElementById("detail-name");
-const detailMeta = document.getElementById("detail-meta");
-const detailActions = document.getElementById("detail-actions");
-const detailTabs = document.querySelectorAll(".detail-tab");
-const detailPanelOverview = document.getElementById("detail-panel-overview");
-const detailPanelMembers = document.getElementById("detail-panel-members");
-const detailPanelEvents = document.getElementById("detail-panel-events");
-const detailPanelManage = document.getElementById("detail-panel-manage");
-const manageTabBtn = document.getElementById("manage-tab-btn");
-const detailDescription = document.getElementById("detail-description");
-const detailFounded = document.getElementById("detail-founded");
-const detailMembersList = document.getElementById("detail-members-list");
-const detailMembersEmpty = document.getElementById("detail-members-empty");
-const detailEventsList = document.getElementById("detail-events-list");
-const detailEventsEmpty = document.getElementById("detail-events-empty");
-
-const manageEditClubBtn = document.getElementById("manage-edit-club-btn");
-const manageRequestsList = document.getElementById("manage-requests-list");
-const manageRequestsEmpty = document.getElementById("manage-requests-empty");
-const manageAddEventBtn = document.getElementById("manage-add-event-btn");
-const manageEventsList = document.getElementById("manage-events-list");
-
-const announcementsSection = document.getElementById("announcements-section");
-const announcementsList = document.getElementById("announcements-list");
-
-const eventModalOverlay = document.getElementById("event-modal-overlay");
-const eventModalTitle = document.getElementById("event-modal-title");
-const eventModalCloseBtn = document.getElementById("event-modal-close-btn");
-const eventModalCancelBtn = document.getElementById("event-modal-cancel-btn");
-const eventModalSubmitBtn = document.getElementById("event-modal-submit-btn");
-const formEvent = document.getElementById("form-event");
-const eventError = document.getElementById("event-error");
-
-const toast = document.getElementById("toast");
-const fabCreateClub = document.getElementById("fab-create-club");
-const modalOverlay = document.getElementById("modal-overlay");
-const modalTitle = document.getElementById("modal-title");
-const modalSubmitBtn = document.getElementById("modal-submit-btn");
-const modalCloseBtn = document.getElementById("modal-close-btn");
-const modalCancelBtn = document.getElementById("modal-cancel-btn");
-const formCreateClub = document.getElementById("form-create-club");
-const createClubError = document.getElementById("create-club-error");
-
-// ---------- icons ----------
-// Inline SVG paths (24x24, stroked) so icons inherit the text colour and
-// need no extra requests or icon font.
-
-const ICON_PATHS = {
-  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
-  users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14a5 5 0 0 1 5 5"/>',
-  arrowRight: '<path d="M5 12h14M13 6l6 6-6 6"/>',
-  chevronRight: '<path d="m9 6 6 6-6 6"/>',
-  calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
-  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
-  gradCap: '<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"/><path d="M22 9v6"/>',
-  book: '<path d="M2 5.5C4.5 4 8 4 12 6c4-2 7.5-2 10-.5V19c-2.5-1.5-6-1.5-10 .5-4-2-7.5-2-10-.5z"/><path d="M12 6v13.5"/>',
-  eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
-  eyeOff: '<path d="M3 3l18 18"/><path d="M10.6 5.1A10.6 10.6 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.6C3.8 8.4 2 12 2 12s3.5 7 10 7a9.7 9.7 0 0 0 4.4-1.1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
-  atom: '<circle cx="12" cy="12" r="1.6"/><ellipse cx="12" cy="12" rx="10" ry="4"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/>',
-  palette: '<path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 2-2 0-.6-.3-1-.6-1.4-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2H17a4 4 0 0 0 4-4c0-4.3-4-7.3-9-7.3z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/>',
-  ball: '<circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5v19"/><path d="M5.3 5.3a9.5 9.5 0 0 1 0 13.4M18.7 5.3a9.5 9.5 0 0 0 0 13.4"/>',
-  code: '<path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 5l-4 14"/>',
-  heart: '<path d="M12 20s-7.5-4.6-9.2-9.3C1.7 7.4 3.8 4.5 7 4.5c2 0 3.3 1.1 5 3 1.7-1.9 3-3 5-3 3.2 0 5.3 2.9 4.2 6.2C19.5 15.4 12 20 12 20z"/>',
-  leaf: '<path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15"/><path d="M5 19c3-4 6-6.5 9.5-8.5"/>',
-};
-
-const CATEGORY_ICONS = {
-  Academic: "atom",
-  Arts: "palette",
-  Sports: "ball",
-  Technology: "code",
-  Volunteer: "heart",
-  Other: "leaf",
-};
-
-function icon(name) {
-  return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${ICON_PATHS[name] || ""}</svg>`;
+function showAuthPanel(name) {
+  Object.entries(AUTH_PANELS).forEach(([key, el]) => el.classList.toggle("active", key === name));
+  authTabsEl.hidden = !(name === "register" || name === "login");
+  authTabs.forEach(t => t.classList.toggle("active", t.dataset.tab === name));
+  [registerError, loginError, verifyError, $("forgot-error"), $("reset-error"), $("recovery-code-error")].forEach(el => { el.textContent = ""; });
 }
 
-function categoryIcon(category) {
-  return icon(CATEGORY_ICONS[category] || "leaf");
+function showAuthView() {
+  viewApp.style.display = "none";
+  viewAuth.style.display = "flex";
 }
 
 // ---------- show / hide password ----------
@@ -162,7 +66,7 @@ function categoryIcon(category) {
 const passwordToggles = document.querySelectorAll("[data-toggle-password]");
 
 function setPasswordVisible(btn, visible) {
-  const input = document.getElementById(btn.dataset.togglePassword);
+  const input = $(btn.dataset.togglePassword);
   input.type = visible ? "text" : "password";
   btn.innerHTML = icon(visible ? "eyeOff" : "eye");
   btn.setAttribute("aria-label", visible ? "Hide password" : "Show password");
@@ -171,24 +75,12 @@ function setPasswordVisible(btn, visible) {
 passwordToggles.forEach(btn => {
   setPasswordVisible(btn, false);
   btn.addEventListener("click", () => {
-    const input = document.getElementById(btn.dataset.togglePassword);
+    const input = $(btn.dataset.togglePassword);
     setPasswordVisible(btn, input.type === "password");
   });
 });
 
-// ---------- auth tab switching ----------
-
-authTabs.forEach(tab => {
-  tab.addEventListener("click", () => {
-    authTabs.forEach(t => t.classList.remove("active"));
-    tab.classList.add("active");
-    const target = tab.dataset.tab;
-    formRegister.classList.toggle("active", target === "register");
-    formLogin.classList.toggle("active", target === "login");
-    registerError.textContent = "";
-    loginError.textContent = "";
-  });
-});
+authTabs.forEach(tab => tab.addEventListener("click", () => showAuthPanel(tab.dataset.tab)));
 
 // ---------- email verification panel ----------
 
@@ -198,108 +90,68 @@ let resendCooldownTimer = null;
 function showVerifyPanel(email) {
   pendingVerifyEmail = email;
   verifyEmailDisplay.textContent = email;
-  verifyError.textContent = "";
   verifyCodeInput.value = "";
-
-  authTabsEl.hidden = true;
-  formRegister.classList.remove("active");
-  formLogin.classList.remove("active");
-  panelVerify.classList.add("active");
+  showAuthPanel("verify");
 }
 
-function hideVerifyPanel(targetTab) {
-  panelVerify.classList.remove("active");
-  authTabsEl.hidden = false;
-  authTabs.forEach(t => t.classList.toggle("active", t.dataset.tab === targetTab));
-  formRegister.classList.toggle("active", targetTab === "register");
-  formLogin.classList.toggle("active", targetTab === "login");
-}
-
-verifyBackBtn.addEventListener("click", () => hideVerifyPanel("login"));
+$("verify-back-btn").addEventListener("click", () => showAuthPanel("login"));
 
 formVerify.addEventListener("submit", async (e) => {
   e.preventDefault();
   verifyError.textContent = "";
-
   const code = verifyCodeInput.value.trim();
-
-  const { error } = await supabaseClient.auth.verifyOtp({
-    email: pendingVerifyEmail,
-    token: code,
-    type: "signup",
-  });
-  if (error) {
-    verifyError.textContent = error.message;
+  if (!/^\d{4,10}$/.test(code)) {
+    verifyError.textContent = "Enter the numeric code from the email.";
     return;
   }
-  await afterAuthSuccess();
+  const btn = formVerify.querySelector("button[type=submit]");
+  await withBusy(btn, "Verifying…", async () => {
+    const { error } = await supabaseClient.auth.verifyOtp({ email: pendingVerifyEmail, token: code, type: "signup" });
+    if (error) {
+      verifyError.textContent = friendlyError(error);
+      return;
+    }
+    await afterAuthSuccess();
+  });
 });
+
+function startCooldown(btn, label, seconds) {
+  let secondsLeft = seconds;
+  btn.disabled = true;
+  btn.textContent = `${label} (${secondsLeft}s)`;
+  const timer = setInterval(() => {
+    secondsLeft -= 1;
+    if (secondsLeft <= 0) {
+      clearInterval(timer);
+      btn.disabled = false;
+      btn.textContent = label;
+    } else {
+      btn.textContent = `${label} (${secondsLeft}s)`;
+    }
+  }, 1000);
+  return timer;
+}
 
 resendCodeBtn.addEventListener("click", async () => {
   resendCodeBtn.disabled = true;
   verifyError.textContent = "";
-
-  const { error } = await supabaseClient.auth.resend({
-    type: "signup",
-    email: pendingVerifyEmail,
-  });
-
+  const { error } = await supabaseClient.auth.resend({ type: "signup", email: pendingVerifyEmail });
   if (error) {
-    verifyError.textContent = error.message;
+    verifyError.textContent = friendlyError(error);
     resendCodeBtn.disabled = false;
     return;
   }
-
-  let secondsLeft = 60;
-  resendCodeBtn.textContent = `Resend code (${secondsLeft}s)`;
   clearInterval(resendCooldownTimer);
-  resendCooldownTimer = setInterval(() => {
-    secondsLeft -= 1;
-    if (secondsLeft <= 0) {
-      clearInterval(resendCooldownTimer);
-      resendCodeBtn.disabled = false;
-      resendCodeBtn.textContent = "Resend code";
-    } else {
-      resendCodeBtn.textContent = `Resend code (${secondsLeft}s)`;
-    }
-  }, 1000);
+  resendCooldownTimer = startCooldown(resendCodeBtn, "Resend code", 60);
 });
-
-// ---------- grade / class helpers ----------
-// The school year rolls over Sept 1. Rather than storing a grade that would
-// need manually bumping every year, we store the calendar year a student is
-// expected to finish grade 12 (graduation_year) and compute their current
-// grade from today's date whenever it's needed.
-
-function getSchoolYear(date) {
-  const d = date || new Date();
-  return d.getMonth() >= 8 ? d.getFullYear() : d.getFullYear() - 1;
-}
-
-function computeGraduationYear(selectedGrade, atDate) {
-  const sy = getSchoolYear(atDate);
-  return sy + (12 - selectedGrade) + 1;
-}
-
-function computeCurrentGrade(graduationYear, atDate) {
-  const sy = getSchoolYear(atDate);
-  return 12 - (graduationYear - sy - 1);
-}
-
-function formatGradeLabel(graduationYear, classSection) {
-  if (!graduationYear) return "";
-  const grade = computeCurrentGrade(graduationYear);
-  const gradeText = grade > 12 ? "Graduated" : `Grade ${grade}`;
-  return classSection ? `${gradeText}${grade <= 12 ? classSection : ""}` : gradeText;
-}
 
 // ---------- account type toggle ----------
 
-const regGradeRow = document.getElementById("reg-grade-row");
-const regGradeSelect = document.getElementById("reg-grade");
-const regClassSelect = document.getElementById("reg-class");
+const regGradeRow = $("reg-grade-row");
+const regGradeSelect = $("reg-grade");
+const regClassSelect = $("reg-class");
 
-const accountTypeButtons = document.querySelectorAll(".account-type-btn");
+const accountTypeButtons = document.querySelectorAll(".account-type-btn[data-account-type]");
 accountTypeButtons.forEach(btn => {
   btn.addEventListener("click", () => {
     accountTypeButtons.forEach(b => b.classList.remove("active"));
@@ -309,20 +161,35 @@ accountTypeButtons.forEach(btn => {
   });
 });
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // ---------- register ----------
 
 formRegister.addEventListener("submit", async (e) => {
   e.preventDefault();
   registerError.textContent = "";
 
-  const firstName = document.getElementById("reg-firstname").value.trim();
-  const lastName = document.getElementById("reg-lastname").value.trim();
-  const email = document.getElementById("reg-email").value.trim().toLowerCase();
-  const password = document.getElementById("reg-password").value;
-  const passwordConfirm = document.getElementById("reg-password-confirm").value;
+  const firstName = $("reg-firstname").value.trim();
+  const lastName = $("reg-lastname").value.trim();
+  const email = $("reg-email").value.trim().toLowerCase();
+  const password = $("reg-password").value;
+  const passwordConfirm = $("reg-password-confirm").value;
 
+  if (!firstName || !lastName) {
+    registerError.textContent = "Please enter your first and last name.";
+    return;
+  }
+  if (!EMAIL_RE.test(email)) {
+    registerError.textContent = "Please enter a valid email address.";
+    return;
+  }
   if (ENFORCE_SCHOOL_EMAIL_DOMAIN && !email.endsWith(SCHOOL_EMAIL_DOMAIN)) {
     registerError.textContent = `Email must end with ${SCHOOL_EMAIL_DOMAIN}`;
+    return;
+  }
+  const pwProblem = validatePassword(password);
+  if (pwProblem) {
+    registerError.textContent = pwProblem;
     return;
   }
   if (password !== passwordConfirm) {
@@ -334,24 +201,27 @@ formRegister.addEventListener("submit", async (e) => {
   const graduationYear = isStudent ? computeGraduationYear(Number(regGradeSelect.value)) : null;
   const classSection = isStudent ? regClassSelect.value : null;
 
-  const { error } = await supabaseClient.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        first_name: firstName,
-        last_name: lastName,
-        account_type: selectedAccountType,
-        graduation_year: graduationYear,
-        class_section: classSection,
+  const btn = formRegister.querySelector("button[type=submit]");
+  await withBusy(btn, "Creating account…", async () => {
+    const { error } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          account_type: selectedAccountType,
+          graduation_year: graduationYear,
+          class_section: classSection,
+        },
       },
-    },
+    });
+    if (error) {
+      registerError.textContent = friendlyError(error);
+      return;
+    }
+    showVerifyPanel(email);
   });
-  if (error) {
-    registerError.textContent = error.message;
-    return;
-  }
-  showVerifyPanel(email);
 });
 
 // ---------- login ----------
@@ -360,334 +230,366 @@ formLogin.addEventListener("submit", async (e) => {
   e.preventDefault();
   loginError.textContent = "";
 
-  const email = document.getElementById("login-email").value.trim().toLowerCase();
-  const password = document.getElementById("login-password").value;
-
-  const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-  if (error) {
-    if (error.message.toLowerCase().includes("confirm")) {
-      showVerifyPanel(email);
-    } else {
-      loginError.textContent = error.message;
-    }
+  const email = $("login-email").value.trim().toLowerCase();
+  const password = $("login-password").value;
+  if (!EMAIL_RE.test(email) || !password) {
+    loginError.textContent = "Enter your email and password.";
     return;
   }
-  await afterAuthSuccess();
+
+  const btn = formLogin.querySelector("button[type=submit]");
+  await withBusy(btn, "Logging in…", async () => {
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) {
+      if (/confirm/i.test(error.message)) {
+        showVerifyPanel(email);
+      } else if (/banned/i.test(error.message)) {
+        loginError.textContent = "This account is suspended. Please contact a school administrator.";
+      } else {
+        loginError.textContent = friendlyError(error);
+      }
+      return;
+    }
+    await afterAuthSuccess({ fromLogin: true });
+  });
+});
+
+// ---------- forgot password ----------
+// Uses Supabase Auth's built-in recovery: it generates a single-use token,
+// emails it (as a link and, if the email template includes {{ .Token }}, a
+// code), expires it (Auth > Providers > Email > "Email OTP expiration"),
+// rate-limits requests, and stores the new password hashed with bcrypt.
+
+let recoveryEmail = null;
+let forgotCooldownTimer = null;
+
+$("forgot-password-btn").addEventListener("click", () => {
+  $("forgot-email").value = $("login-email").value.trim();
+  $("forgot-success").hidden = true;
+  $("form-recovery-code").hidden = true;
+  showAuthPanel("forgot");
+});
+
+$("forgot-back-btn").addEventListener("click", () => showAuthPanel("login"));
+
+$("form-forgot").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errorEl = $("forgot-error");
+  const successEl = $("forgot-success");
+  errorEl.textContent = "";
+  const email = $("forgot-email").value.trim().toLowerCase();
+  if (!EMAIL_RE.test(email)) {
+    errorEl.textContent = "Please enter a valid email address.";
+    return;
+  }
+
+  const btn = $("forgot-submit-btn");
+  btn.disabled = true;
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/index.html`,
+  });
+
+  // Same message whether or not the account exists, so this form can't be
+  // used to discover who has an account. Only rate limiting is surfaced.
+  if (error && (error.status === 429 || /rate limit|too many/i.test(error.message))) {
+    errorEl.textContent = "Too many reset requests. Please wait a few minutes and try again.";
+    btn.disabled = false;
+    return;
+  }
+  if (error && /Failed to fetch/i.test(error.message)) {
+    errorEl.textContent = friendlyError(error);
+    btn.disabled = false;
+    return;
+  }
+
+  recoveryEmail = email;
+  successEl.textContent = "If an account exists for that email, we've sent password reset instructions. Check your inbox (and spam folder).";
+  successEl.hidden = false;
+  $("form-recovery-code").hidden = false;
+  clearInterval(forgotCooldownTimer);
+  forgotCooldownTimer = startCooldown(btn, "Send again", 60);
+});
+
+$("form-recovery-code").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errorEl = $("recovery-code-error");
+  errorEl.textContent = "";
+  const code = $("recovery-code").value.trim();
+  if (!/^\d{4,10}$/.test(code)) {
+    errorEl.textContent = "Enter the numeric code from the email.";
+    return;
+  }
+  const btn = e.target.querySelector("button[type=submit]");
+  await withBusy(btn, "Checking…", async () => {
+    const { error } = await supabaseClient.auth.verifyOtp({ email: recoveryEmail, token: code, type: "recovery" });
+    if (error) {
+      errorEl.textContent = "That code is invalid or has expired. Request a new one.";
+      return;
+    }
+    recoveryMode = true;
+    showAuthPanel("reset");
+  });
+});
+
+$("form-reset-password").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errorEl = $("reset-error");
+  errorEl.textContent = "";
+  const password = $("reset-password").value;
+  const confirmValue = $("reset-password-confirm").value;
+  const problem = validatePassword(password);
+  if (problem) { errorEl.textContent = problem; return; }
+  if (password !== confirmValue) { errorEl.textContent = "Passwords do not match."; return; }
+
+  await withBusy($("reset-submit-btn"), "Updating…", async () => {
+    const { error } = await supabaseClient.auth.updateUser({ password });
+    if (error) {
+      errorEl.textContent = /session/i.test(error.message)
+        ? "Your reset link has expired. Please request a new one."
+        : friendlyError(error);
+      return;
+    }
+    // sign out every other device that might still use the old password
+    await supabaseClient.auth.signOut({ scope: "others" });
+    recoveryMode = false;
+    $("form-reset-password").reset();
+    history.replaceState(null, "", window.location.pathname + "#/home");
+    showToast("Your password has been updated.", "success");
+    await afterAuthSuccess();
+  });
+});
+
+supabaseClient.auth.onAuthStateChange((event) => {
+  if (event === "PASSWORD_RECOVERY") {
+    recoveryMode = true;
+    showAuthView();
+    showAuthPanel("reset");
+  }
 });
 
 // ---------- app entry / profile ----------
 
-async function afterAuthSuccess() {
-  const {
-    data: { user },
-  } = await supabaseClient.auth.getUser();
-  if (!user) return;
+async function loadCurrentUser() {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) return null;
 
-  const { data: profile, error } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-  if (error || !profile) {
+  const { data: profile, error } = await supabaseClient.from("profiles").select("*").eq("id", user.id).single();
+  if (error || !profile) return null;
+
+  const { data: leads } = await supabaseClient
+    .from("club_leaders")
+    .select("id, club_id, position, started_at, club:clubs(id, name, status, category, logo_url)")
+    .eq("user_id", user.id)
+    .is("ended_at", null);
+
+  const isAdmin = profile.role === "admin";
+  return {
+    id: profile.id,
+    profile,
+    email: profile.email,
+    isAdmin,
+    isTeacher: profile.account_type === "teacher" && !isAdmin,
+    isStudent: profile.account_type === "student" && !isAdmin,
+    leaderships: (leads || []).filter(l => l.club),
+  };
+}
+
+async function afterAuthSuccess({ fromLogin = false } = {}) {
+  const user = await loadCurrentUser();
+  if (!user) {
     loginError.textContent = "Could not load your profile. Try logging in again.";
+    await supabaseClient.auth.signOut();
+    showAuthView();
+    showAuthPanel("login");
+    return;
+  }
+  if (user.profile.status === "suspended") {
+    await supabaseClient.auth.signOut();
+    showAuthView();
+    showAuthPanel("login");
+    loginError.textContent = "This account is suspended. Please contact a school administrator.";
     return;
   }
 
-  currentUser = {
-    id: profile.id,
-    firstName: profile.first_name,
-    lastName: profile.last_name,
-    email: profile.email,
-    role: profile.role,
-    accountType: profile.account_type,
-    graduationYear: profile.graduation_year,
-    classSection: profile.class_section,
-    bio: profile.bio,
-  };
+  currentUser = user;
 
-  if (currentUser.role === "admin") {
+  // admins land on their dashboard after logging in; they can still open
+  // the community site from there
+  if (currentUser.isAdmin && fromLogin) {
     window.location.href = "/admin.html";
     return;
   }
   enterApp();
 }
 
-function enterApp() {
-  if (!currentUser) return;
-
-  viewAuth.style.display = "none";
-  viewApp.style.display = "block";
-  hideVerifyPanel("register");
-
-  showView("home");
+function isLeaderOf(clubId) {
+  return !!currentUser && currentUser.leaderships.some(l => l.club_id === clubId);
 }
 
-logoutBtn.addEventListener("click", async () => {
+async function refreshLeaderships() {
+  const fresh = await loadCurrentUser();
+  if (fresh) currentUser = fresh;
+  applyRoleVisibility();
+}
+
+function applyRoleVisibility() {
+  const u = currentUser;
+  $("nav-my-clubs").hidden = !u.isStudent;
+  $("nav-lead").hidden = u.leaderships.length === 0;
+  $("nav-admin").hidden = !u.isAdmin;
+  $("nav-manage-group").hidden = u.leaderships.length === 0 && !u.isAdmin;
+  $("create-club-btn").hidden = !u.isStudent;
+
+  const roleLabel = u.isAdmin ? "Administrator"
+    : u.isTeacher ? "Teacher"
+    : u.leaderships.length ? "Student · Club leader"
+    : "Student";
+  $("sidebar-user").innerHTML = `
+    <span class="profile-avatar">${escapeHtml(initials(u.profile))}</span>
+    <span class="sidebar-user-text">
+      <strong>${escapeHtml(fullName(u.profile))}</strong>
+      <span>${escapeHtml(roleLabel)}</span>
+    </span>`;
+}
+
+function enterApp() {
+  if (!currentUser) return;
+  viewAuth.style.display = "none";
+  viewApp.style.display = "block";
+  showAuthPanel("register");
+  applyRoleVisibility();
+  loadCategories();
+  startNotificationPolling();
+  if (!location.hash.startsWith("#/")) {
+    history.replaceState(null, "", window.location.pathname + "#/home");
+  }
+  route();
+}
+
+async function logout() {
+  stopNotificationPolling();
   await supabaseClient.auth.signOut();
   currentUser = null;
-  viewApp.style.display = "none";
-  viewAuth.style.display = "flex";
+  showAuthView();
   formLogin.reset();
   formRegister.reset();
   passwordToggles.forEach(btn => setPasswordVisible(btn, false));
-  hideVerifyPanel("register");
-});
-
-// ---------- sidebar navigation ----------
-
-const viewPanelsMap = {
-  home: viewClubList,
-  "my-clubs": viewMyClubs,
-  announcements: viewAnnouncements,
-  students: viewStudents,
-};
-
-let lastListView = "home";
-
-function hideAllMainViews() {
-  Object.values(viewPanelsMap).forEach(v => v.classList.remove("active"));
-  viewClubDetail.classList.remove("active");
-  viewStudentProfile.classList.remove("active");
+  showAuthPanel("login");
+  history.replaceState(null, "", window.location.pathname);
 }
 
-function showView(name) {
-  hideAllMainViews();
-  viewPanelsMap[name].classList.add("active");
-  sidebarNavItems.forEach(item => item.classList.toggle("active", item.dataset.nav === name));
+$("logout-btn").addEventListener("click", logout);
+$("profile-logout-btn").addEventListener("click", logout);
+
+// ============================================================
+// ROUTING (#/page/param/...)
+// ============================================================
+// Hash routes make every page linkable (notifications link straight to the
+// relevant club / tab) and make the browser back button work.
+
+const VIEW_IDS = [
+  "view-home", "view-my-clubs", "view-announcements", "view-students", "view-student-profile",
+  "view-club-detail", "view-lead", "view-notifications", "view-not-found",
+];
+
+let navDepth = 0;
+
+function parseRoute() {
+  const h = window.location.hash;
+  if (!h.startsWith("#/")) return { name: "home", params: [] };
+  const parts = h.slice(2).split("/").filter(Boolean).map(decodeURIComponent);
+  return { name: parts[0] || "home", params: parts.slice(1) };
+}
+
+function navigate(hash) {
+  if (window.location.hash === hash) route();
+  else window.location.hash = hash;
+}
+
+function goBack() {
+  if (navDepth > 1) history.back();
+  else navigate("#/home");
+}
+
+function showPanel(viewId, navName) {
+  VIEW_IDS.forEach(id => $(id).classList.toggle("active", id === viewId));
+  document.querySelectorAll(".sidebar-nav-item[data-nav]").forEach(item => {
+    item.classList.toggle("active", item.dataset.nav === navName);
+  });
   closeSidebar();
+  window.scrollTo({ top: 0 });
+}
 
-  if (name === "home") {
-    lastListView = "home";
-    renderClubs();
-    loadAnnouncements();
-  } else if (name === "my-clubs") {
-    lastListView = "my-clubs";
-    renderMyClubs();
-  } else if (name === "announcements") {
-    loadAnnouncementsPage();
-  } else if (name === "students") {
-    lastListView = "students";
-    studentsSearchInput.value = "";
-    renderStudents();
+function showNotFound(message) {
+  $("not-found-message").textContent = message || "This page doesn't exist, or you don't have access to it.";
+  showPanel("view-not-found", null);
+}
+
+async function route() {
+  if (!currentUser) return;
+  const { name, params } = parseRoute();
+
+  switch (name) {
+    case "home":
+      showPanel("view-home", "home");
+      renderHome();
+      break;
+    case "my-clubs":
+      if (!currentUser.isStudent) return showNotFound("My Clubs is for student accounts.");
+      showPanel("view-my-clubs", "my-clubs");
+      renderMyClubs();
+      break;
+    case "announcements":
+      showPanel("view-announcements", "announcements");
+      setFeedFilter(params[0] || "all");
+      loadFeed();
+      break;
+    case "students":
+      showPanel("view-students", "students");
+      renderStudents();
+      break;
+    case "profile":
+      showPanel("view-student-profile", "profile");
+      showStudentProfile(currentUser.id, true);
+      break;
+    case "student":
+      if (!params[0]) return showNotFound();
+      if (params[0] === currentUser.id) return navigate("#/profile");
+      showPanel("view-student-profile", "students");
+      showStudentProfile(params[0], false);
+      break;
+    case "club":
+      if (!params[0]) return showNotFound();
+      showPanel("view-club-detail", "home");
+      showClubDetail(params[0], params[1] || "overview");
+      break;
+    case "lead":
+      // leadership may have been granted since login (e.g. a club was just approved)
+      if (currentUser.leaderships.length === 0 || (params[0] && !isLeaderOf(params[0]))) {
+        await refreshLeaderships();
+        if (currentUser.leaderships.length === 0) return showNotFound("The Leader Dashboard is only available to club leaders.");
+      }
+      showPanel("view-lead", "lead");
+      showLeaderDashboard(params[0], params[1] || "overview");
+      break;
+    case "notifications":
+      showPanel("view-notifications", "notifications");
+      renderNotifications();
+      break;
+    default:
+      showNotFound();
   }
 }
 
-navHomeBtn.addEventListener("click", () => showView("home"));
-navMyClubsBtn.addEventListener("click", () => showView("my-clubs"));
-navAnnouncementsBtn.addEventListener("click", () => showView("announcements"));
-navStudentsBtn.addEventListener("click", () => showView("students"));
-brandHomeBtn.addEventListener("click", () => showView("home"));
-
-// ---------- students directory ----------
-
-let allStudentsCache = [];
-let activePeopleFilter = "all";
-
-const peopleFilterButtons = document.querySelectorAll("[data-people-filter]");
-peopleFilterButtons.forEach(btn => {
-  btn.addEventListener("click", () => {
-    peopleFilterButtons.forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    activePeopleFilter = btn.dataset.peopleFilter;
-    applyStudentSearch();
-  });
+window.addEventListener("hashchange", () => {
+  navDepth += 1;
+  route();
 });
 
-function profileSubtitle(profile) {
-  if (profile.account_type === "teacher") return "Teacher";
-  return formatGradeLabel(profile.graduation_year, profile.class_section) || "Student";
-}
+// ---------- sidebar (mobile) ----------
 
-function profileInitials(profile) {
-  return ((profile.first_name[0] || "") + (profile.last_name[0] || "")).toUpperCase();
-}
-
-async function renderStudents() {
-  const { data: students, error } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .in("account_type", ["student", "teacher"])
-    .order("first_name", { ascending: true });
-
-  if (error) {
-    console.error(error);
-    return;
-  }
-
-  allStudentsCache = students;
-  applyStudentSearch();
-}
-
-function applyStudentSearch() {
-  const term = studentsSearchInput.value.trim().toLowerCase();
-  const filtered = allStudentsCache.filter(s =>
-    (activePeopleFilter === "all" || s.account_type === activePeopleFilter) &&
-    (!term || `${s.first_name} ${s.last_name}`.toLowerCase().includes(term))
-  );
-
-  studentsGrid.innerHTML = "";
-  studentsEmpty.hidden = filtered.length !== 0;
-
-  filtered.forEach(s => {
-    const isTeacher = s.account_type === "teacher";
-    const card = document.createElement("button");
-    card.className = "person-card";
-    card.innerHTML = `
-      <span class="person-avatar">${escapeHtml(profileInitials(s))}</span>
-      <span class="person-info">
-        <span class="person-name">${escapeHtml(s.first_name)} ${escapeHtml(s.last_name)}</span>
-        <span class="person-meta">${icon(isTeacher ? "book" : "gradCap")}${escapeHtml(profileSubtitle(s))}</span>
-      </span>
-      <span class="person-chevron">${icon("chevronRight")}</span>
-    `;
-    card.addEventListener("click", () => showStudentProfile(s));
-    studentsGrid.appendChild(card);
-  });
-}
-
-studentsSearchInput.addEventListener("input", applyStudentSearch);
-
-const studentProfileBackLabel = document.getElementById("student-profile-back-label");
-let profileOpenedFromNav = false;
-
-async function viewStudentProfileById(userId, fromNav = false) {
-  const { data: profile, error } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .single();
-  if (error || !profile) {
-    showToast("Could not load that profile.");
-    return;
-  }
-  showStudentProfile(profile, fromNav);
-}
-
-function formatShortDate(iso) {
-  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-}
-
-async function showStudentProfile(profile, fromNav = false) {
-  hideAllMainViews();
-  viewStudentProfile.classList.add("active");
-
-  // "My Profile" in the sidebar is a top-level page, so it gets the nav
-  // highlight and no back button; profiles opened from a list keep both.
-  profileOpenedFromNav = fromNav;
-  if (fromNav) {
-    sidebarNavItems.forEach(item => item.classList.toggle("active", item.dataset.nav === "profile"));
-    closeSidebar();
-  }
-  studentProfileBackBtn.hidden = fromNav;
-  studentProfileBackLabel.textContent = lastListView === "students" ? "Back to students" : "Back to clubs";
-
-  studentProfileAvatar.textContent = profileInitials(profile);
-  studentProfileName.textContent = `${profile.first_name} ${profile.last_name}`;
-  studentProfileMeta.textContent = profileSubtitle(profile);
-  studentProfileBio.textContent = profile.bio || "No bio yet.";
-  studentProfileBio.classList.toggle("is-empty", !profile.bio);
-  studentProfileEditBtn.hidden = profile.id !== currentUser.id;
-  studentProfileEditBtn.onclick = () => openEditProfileModal(profile);
-
-  studentProfileHistory.innerHTML = "";
-  const { data: history, error } = await supabaseClient
-    .from("club_members")
-    .select("*, club:clubs(name, category, created_by)")
-    .eq("user_id", profile.id)
-    .in("status", ["approved", "left"])
-    .order("applied_at", { ascending: true });
-
-  if (error || !history || history.length === 0) {
-    studentProfileHistoryEmpty.hidden = false;
-    return;
-  }
-  studentProfileHistoryEmpty.hidden = true;
-
-  history.forEach(h => {
-    const isCurrent = h.status === "approved";
-    const club = h.club;
-    const role = club && club.created_by === profile.id ? "Founder" : "Member";
-    const joined = formatShortDate(h.applied_at);
-    const item = document.createElement("div");
-    item.className = "history-item" + (isCurrent ? " is-current" : "");
-    item.innerHTML = `
-      <span class="history-dot" aria-hidden="true"></span>
-      <div class="history-card">
-        <span class="history-icon" data-category="${escapeHtml(club ? club.category : "Other")}">${categoryIcon(club ? club.category : "Other")}</span>
-        <div class="history-body">
-          <h4>${escapeHtml(club ? club.name : "Deleted club")}</h4>
-          <span class="history-status">${isCurrent ? "Current Member" : "Past Member"}</span>
-          <div class="history-meta">
-            <div class="history-meta-item">
-              ${icon("user")}
-              <div><span class="history-meta-label">Role</span><span class="history-meta-value">${role}</span></div>
-            </div>
-            <div class="history-meta-item">
-              ${icon("calendar")}
-              <div><span class="history-meta-label">Joined</span><span class="history-meta-value">${joined}${isCurrent ? ' <span class="history-active">· Currently active</span>' : ""}</span></div>
-            </div>
-            ${!isCurrent && h.left_at ? `
-            <div class="history-meta-item">
-              ${icon("calendar")}
-              <div><span class="history-meta-label">Left</span><span class="history-meta-value">${formatShortDate(h.left_at)}</span></div>
-            </div>` : ""}
-          </div>
-        </div>
-      </div>
-    `;
-    studentProfileHistory.appendChild(item);
-  });
-}
-
-studentProfileBackBtn.addEventListener("click", () => showView(lastListView === "students" ? "students" : "home"));
-
-// ---------- edit profile modal ----------
-
-const editProfileModalOverlay = document.getElementById("edit-profile-modal-overlay");
-const editProfileModalCloseBtn = document.getElementById("edit-profile-modal-close-btn");
-const editProfileModalCancelBtn = document.getElementById("edit-profile-modal-cancel-btn");
-const formEditProfile = document.getElementById("form-edit-profile");
-const editProfileError = document.getElementById("edit-profile-error");
-const editProfileBioInput = document.getElementById("edit-profile-bio");
-
-function openEditProfileModal(profile) {
-  editProfileError.textContent = "";
-  editProfileBioInput.value = profile.bio || "";
-  editProfileModalOverlay.classList.add("open");
-}
-
-function closeEditProfileModal() {
-  editProfileModalOverlay.classList.remove("open");
-}
-
-editProfileModalCloseBtn.addEventListener("click", closeEditProfileModal);
-editProfileModalCancelBtn.addEventListener("click", closeEditProfileModal);
-editProfileModalOverlay.addEventListener("click", (e) => {
-  if (e.target === editProfileModalOverlay) closeEditProfileModal();
-});
-
-formEditProfile.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  editProfileError.textContent = "";
-
-  const bio = editProfileBioInput.value.trim();
-  const { error } = await supabaseClient
-    .from("profiles")
-    .update({ bio })
-    .eq("id", currentUser.id);
-
-  if (error) {
-    editProfileError.textContent = error.message;
-    return;
-  }
-
-  currentUser.bio = bio;
-  closeEditProfileModal();
-  showToast("Profile updated.");
-  await viewStudentProfileById(currentUser.id, profileOpenedFromNav);
-});
-
-sidebarProfileBtn.addEventListener("click", () => viewStudentProfileById(currentUser.id, true));
+const appSidebar = $("app-sidebar");
+const sidebarOverlay = $("sidebar-overlay");
 
 function openSidebar() {
   appSidebar.classList.add("open");
@@ -699,47 +601,76 @@ function closeSidebar() {
   sidebarOverlay.classList.remove("open");
 }
 
-hamburgerBtn.addEventListener("click", openSidebar);
+$("hamburger-btn").addEventListener("click", openSidebar);
 sidebarOverlay.addEventListener("click", closeSidebar);
 
-// ---------- club list / detail navigation ----------
+// ---------- modals (generic close wiring) ----------
 
-async function renderMyClubs() {
-  const { data: rows, error } = await supabaseClient
-    .from("club_members")
-    .select("*, club:clubs(*, creator:profiles(first_name, last_name))")
-    .eq("user_id", currentUser.id)
-    .eq("status", "approved")
-    .order("applied_at", { ascending: false });
+function openModal(id) { $(id).classList.add("open"); }
+function closeModalById(id) { $(id).classList.remove("open"); }
 
-  myClubsGrid.innerHTML = "";
+document.querySelectorAll("[data-close-modal]").forEach(btn => {
+  btn.addEventListener("click", () => closeModalById(btn.dataset.closeModal));
+});
+document.querySelectorAll(".modal-overlay").forEach(overlay => {
+  overlay.addEventListener("click", e => { if (e.target === overlay) overlay.classList.remove("open"); });
+});
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  const open = [...document.querySelectorAll(".modal-overlay.open:not(.dialog-overlay)")].pop();
+  if (open) open.classList.remove("open");
+});
 
-  if (error || !rows || rows.length === 0) {
-    myClubsEmpty.hidden = false;
-    return;
-  }
-  myClubsEmpty.hidden = true;
+// ============================================================
+// CATEGORIES
+// ============================================================
 
-  const memberCounts = await fetchMemberCounts(rows.map(r => r.club.id));
+let activeCategoryFilter = "All";
 
-  rows.forEach(row => {
-    const club = row.club;
-    const createdByName = `${club.creator.first_name} ${club.creator.last_name}`;
-    const isOwner = club.created_by === currentUser.id;
-    const card = buildClubCard(club, {
-      memberCount: memberCounts[club.id] || 0,
-      tag: isOwner
-        ? '<span class="club-card-ownertag">Owner</span>'
-        : '<span class="club-card-ownertag is-member">Member</span>',
-      note: club.status === "pending" ? "Awaiting admin approval" : null,
+async function loadCategories() {
+  const { data, error } = await supabaseClient
+    .from("club_categories")
+    .select("name, sort_order")
+    .order("sort_order")
+    .order("name");
+  categoriesCache = error || !data || data.length === 0
+    ? ["Academic", "Arts", "Sports", "Technology", "Volunteer", "Other"]
+    : data.map(c => c.name);
+
+  const filters = $("category-filters");
+  filters.innerHTML = ["All", ...categoriesCache].map(c => `
+    <button class="category-filter-btn${c === activeCategoryFilter ? " active" : ""}" data-category-filter="${escapeHtml(c)}">${escapeHtml(c)}</button>
+  `).join("");
+  filters.querySelectorAll("[data-category-filter]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      activeCategoryFilter = btn.dataset.categoryFilter;
+      filters.querySelectorAll("[data-category-filter]").forEach(b => b.classList.toggle("active", b === btn));
+      applyClubSearch();
     });
-    card.addEventListener("click", () => showClubDetail({ ...club, createdByName }));
-    myClubsGrid.appendChild(card);
   });
+
+  $("club-category").innerHTML = categoriesCache.map(c => `<option>${escapeHtml(c)}</option>`).join("");
 }
 
-// Approved-member counts for a set of clubs. Approved rows are readable by
-// any signed-in user (see club_members_select_public_history policy).
+// ============================================================
+// HOME
+// ============================================================
+
+let homeClubs = [];
+let homeLeaders = {};      // club_id -> [{ position, profile }]
+let homeMemberCounts = {};
+const clubSearchInput = $("club-search");
+const recruitmentFilter = $("recruitment-filter");
+
+async function renderHome() {
+  renderClubs();
+  renderLeaderboard();
+  renderHomeUpcoming();
+  loadSchoolAnnouncements();
+}
+
+// Approved-member counts for a set of clubs (membership rows are readable by
+// any signed-in user).
 async function fetchMemberCounts(clubIds) {
   const counts = {};
   if (clubIds.length === 0) return counts;
@@ -756,22 +687,100 @@ async function fetchMemberCounts(clubIds) {
   return counts;
 }
 
-function buildClubCard(club, { memberCount = 0, tag = "", note = null } = {}) {
-  const leader = club.creator ? `${club.creator.first_name} ${club.creator.last_name}` : "";
-  const card = document.createElement("button");
+async function fetchActiveLeaders(clubIds) {
+  const map = {};
+  if (clubIds.length === 0) return map;
+  const { data, error } = await supabaseClient
+    .from("club_leaders")
+    .select("id, club_id, user_id, position, started_at, profile:profiles!club_leaders_user_id_fkey(id, first_name, last_name)")
+    .in("club_id", clubIds)
+    .is("ended_at", null);
+  if (error) {
+    console.error(error);
+    return map;
+  }
+  data.forEach(l => {
+    (map[l.club_id] = map[l.club_id] || []).push(l);
+  });
+  Object.values(map).forEach(list => list.sort((a, b) => (a.position === "leader" ? -1 : 1) - (b.position === "leader" ? -1 : 1)));
+  return map;
+}
+
+function mainLeaderName(leaders) {
+  if (!leaders || leaders.length === 0) return "";
+  const main = leaders.find(l => l.position === "leader") || leaders[0];
+  return fullName(main.profile);
+}
+
+async function renderClubs() {
+  const grid = $("club-grid");
+  if (homeClubs.length === 0) grid.innerHTML = loadingHtml("Loading clubs…");
+
+  const { data: clubs, error } = await supabaseClient
+    .from("clubs")
+    .select("*")
+    .eq("status", "approved")
+    .order("name", { ascending: true });
+
+  if (error) {
+    grid.innerHTML = errorStateHtml("Couldn't load clubs. Please refresh the page.");
+    return;
+  }
+
+  homeClubs = clubs;
+  const ids = clubs.map(c => c.id);
+  [homeMemberCounts, homeLeaders] = await Promise.all([fetchMemberCounts(ids), fetchActiveLeaders(ids)]);
+  applyClubSearch();
+}
+
+function applyClubSearch() {
+  const term = clubSearchInput.value.trim().toLowerCase();
+  const recruit = recruitmentFilter.value;
+  const filtered = homeClubs.filter(c => {
+    if (activeCategoryFilter !== "All" && c.category !== activeCategoryFilter) return false;
+    if (recruit === "open" && !c.recruitment_open) return false;
+    if (recruit === "closed" && c.recruitment_open) return false;
+    if (!term) return true;
+    const leaderNames = (homeLeaders[c.id] || []).map(l => fullName(l.profile)).join(" ");
+    return `${c.name} ${c.category} ${leaderNames} ${c.description}`.toLowerCase().includes(term);
+  });
+
+  const grid = $("club-grid");
+  grid.innerHTML = "";
+  $("club-empty").hidden = filtered.length !== 0;
+  $("club-empty").querySelector("p").textContent = homeClubs.length === 0
+    ? "No clubs yet. Students can request one!"
+    : "No clubs match your search.";
+
+  filtered.forEach(club => {
+    const card = buildClubCard(club, {
+      memberCount: homeMemberCounts[club.id] || 0,
+      leaderName: mainLeaderName(homeLeaders[club.id]),
+      tag: club.recruitment_open ? '<span class="club-card-ownertag is-recruiting">Recruiting</span>' : "",
+    });
+    grid.appendChild(card);
+  });
+}
+
+clubSearchInput.addEventListener("input", applyClubSearch);
+recruitmentFilter.addEventListener("change", applyClubSearch);
+
+function buildClubCard(club, { memberCount = 0, leaderName = "", tag = "", note = null } = {}) {
+  const card = document.createElement("a");
   card.className = "club-card";
+  card.href = `#/club/${club.id}`;
   card.dataset.category = club.category;
   card.innerHTML = `
     <span class="club-card-banner" aria-hidden="true"></span>
     <span class="club-card-head">
-      <span class="club-card-icon">${categoryIcon(club.category)}</span>
+      <span class="club-card-icon${club.logo_url ? " has-logo" : ""}">${clubLogoHtml(club)}</span>
       <span class="club-card-title">
         <span class="club-card-tags">
           <span class="club-badge" data-category="${escapeHtml(club.category)}">${escapeHtml(club.category)}</span>
           ${tag}
         </span>
         <h3>${escapeHtml(club.name)}</h3>
-        ${leader ? `<span class="club-card-leader">${icon("user")}Led by <strong>${escapeHtml(leader)}</strong></span>` : ""}
+        ${leaderName ? `<span class="club-card-leader">${icon("user")}Led by <strong>${escapeHtml(leaderName)}</strong></span>` : ""}
       </span>
     </span>
     <p class="club-card-desc">${escapeHtml(club.description)}</p>
@@ -783,437 +792,118 @@ function buildClubCard(club, { memberCount = 0, tag = "", note = null } = {}) {
   return card;
 }
 
-let currentClubDetail = null;
-let currentClubIsOwner = false;
+// ---------- leaderboard ----------
 
-async function showClubDetail(club) {
-  currentClubDetail = club;
-  Object.values(viewPanelsMap).forEach(v => v.classList.remove("active"));
-  viewClubDetail.classList.add("active");
+let leaderboardPeriod = "all";
+const leaderboardPeriodButtons = document.querySelectorAll("#leaderboard-periods [data-period]");
 
-  detailTabs.forEach(t => t.classList.toggle("active", t.dataset.detailTab === "overview"));
-  detailPanelOverview.classList.add("active");
-  detailPanelMembers.classList.remove("active");
-  detailPanelEvents.classList.remove("active");
-  detailPanelManage.classList.remove("active");
-
-  detailBanner.dataset.category = club.category;
-  detailLogo.innerHTML = categoryIcon(club.category);
-  detailCategory.textContent = club.category;
-  detailCategory.dataset.category = club.category;
-  detailName.textContent = club.name;
-  detailMeta.textContent = `Created by ${club.createdByName}`;
-  detailDescription.textContent = club.description;
-  detailFounded.textContent = formatDateOnly(club.created_at);
-
-  detailActions.innerHTML = "";
-  detailMembersList.innerHTML = "";
-  detailEventsList.innerHTML = "";
-  manageRequestsList.innerHTML = "";
-  manageEventsList.innerHTML = "";
-  manageTabBtn.hidden = true;
-
-  await loadClubMembership(club);
-  await loadClubEvents(club);
-}
-
-detailBackBtn.addEventListener("click", () => showView(lastListView));
-
-detailTabs.forEach(tab => {
-  tab.addEventListener("click", () => {
-    detailTabs.forEach(t => t.classList.remove("active"));
-    tab.classList.add("active");
-    const target = tab.dataset.detailTab;
-    detailPanelOverview.classList.toggle("active", target === "overview");
-    detailPanelMembers.classList.toggle("active", target === "members");
-    detailPanelEvents.classList.toggle("active", target === "events");
-    detailPanelManage.classList.toggle("active", target === "manage");
+leaderboardPeriodButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    leaderboardPeriod = btn.dataset.period;
+    leaderboardPeriodButtons.forEach(b => b.classList.toggle("active", b === btn));
+    renderLeaderboard();
   });
 });
 
-// ---------- club membership ----------
-
-async function loadClubMembership(club) {
-  const isOwner = currentUser.id === club.created_by;
-  currentClubIsOwner = isOwner;
-  manageTabBtn.hidden = !isOwner;
-
-  const { data: memberRows, error } = await supabaseClient
-    .from("club_members")
-    .select("*, profile:profiles(first_name, last_name)")
-    .eq("club_id", club.id);
-
+async function renderLeaderboard() {
+  const el = $("leaderboard");
+  el.innerHTML = loadingHtml("Loading rankings…");
+  const { data, error } = await supabaseClient.rpc("club_leaderboard", { p_period: leaderboardPeriod });
   if (error) {
-    console.error(error);
+    el.innerHTML = errorStateHtml("Couldn't load the leaderboard.");
     return;
   }
-
-  const approved = memberRows.filter(m => m.status === "approved");
-  const myRow = memberRows.find(m => m.user_id === currentUser.id);
-
-  detailMeta.textContent = `Created by ${club.createdByName} · ${approved.length} member${approved.length === 1 ? "" : "s"}`;
-
-  renderDetailActions(club, isOwner, myRow);
-  renderMembersList(approved, club.created_by);
-  detailMembersEmpty.hidden = approved.length !== 0;
-
-  if (isOwner) {
-    const pending = memberRows.filter(m => m.status === "pending");
-    renderRequestsList(pending, club);
-  }
-}
-
-function renderDetailActions(club, isOwner, myRow) {
-  detailActions.innerHTML = "";
-
-  if (isOwner) {
-    const pill = document.createElement("span");
-    pill.className = "pill pill-member";
-    pill.textContent = "Your Club";
-    detailActions.appendChild(pill);
+  const ranked = data.filter(r => r.score > 0).slice(0, 10);
+  if (ranked.length === 0) {
+    el.innerHTML = `<p class="empty-state">No club activity in this period yet.</p>`;
     return;
   }
-
-  if (!myRow || myRow.status === "left") {
-    const applyBtn = document.createElement("button");
-    applyBtn.className = "btn btn-primary btn-sm";
-    applyBtn.textContent = "Apply to Join";
-    applyBtn.addEventListener("click", () => applyToClub(club));
-    detailActions.appendChild(applyBtn);
-    return;
-  }
-
-  if (myRow.status === "pending") {
-    const pill = document.createElement("span");
-    pill.className = "pill pill-pending";
-    pill.textContent = "Application Pending";
-    detailActions.appendChild(pill);
-
-    const withdrawBtn = document.createElement("button");
-    withdrawBtn.className = "btn btn-secondary btn-sm";
-    withdrawBtn.textContent = "Withdraw";
-    withdrawBtn.addEventListener("click", () => withdrawApplication(myRow.id, club));
-    detailActions.appendChild(withdrawBtn);
-    return;
-  }
-
-  const pill = document.createElement("span");
-  pill.className = "pill pill-member";
-  pill.textContent = "Member";
-  detailActions.appendChild(pill);
-
-  const leaveBtn = document.createElement("button");
-  leaveBtn.className = "btn btn-secondary btn-sm";
-  leaveBtn.textContent = "Leave";
-  leaveBtn.addEventListener("click", () => leaveClub(myRow.id, club));
-  detailActions.appendChild(leaveBtn);
+  const top = ranked[0].score || 1;
+  el.innerHTML = ranked.map((r, i) => `
+    <a class="lb-row${i < 3 ? ` is-top is-top-${i + 1}` : ""}" href="#/club/${r.club_id}">
+      <span class="lb-rank">${i + 1}</span>
+      <span class="lb-logo" data-category="${escapeHtml(r.category)}">${clubLogoHtml(r)}</span>
+      <span class="lb-main">
+        <span class="lb-name">${escapeHtml(r.name)}</span>
+        <span class="lb-bar"><span style="width:${Math.max(6, Math.round((r.score / top) * 100))}%"></span></span>
+        <span class="lb-breakdown">${r.events_count} event${r.events_count === 1 ? "" : "s"} · ${r.posts_count} update${r.posts_count === 1 ? "" : "s"} · ${r.achievements_count} achievement${r.achievements_count === 1 ? "" : "s"}</span>
+      </span>
+      <span class="lb-score"><strong>${r.score}</strong><span>pts</span></span>
+    </a>
+  `).join("");
 }
 
-function renderMembersList(approved, ownerId) {
-  detailMembersList.innerHTML = "";
-  approved
-    .slice()
-    .sort((a, b) => (a.user_id === ownerId ? -1 : b.user_id === ownerId ? 1 : 0))
-    .forEach(m => {
-      const name = `${m.profile.first_name} ${m.profile.last_name}`;
-      const initials = (m.profile.first_name[0] || "") + (m.profile.last_name[0] || "");
-      const row = document.createElement("button");
-      row.className = "member-row";
-      row.style.width = "100%";
-      row.style.cursor = "pointer";
-      row.innerHTML = `
-        <div class="member-row-name">
-          <span class="member-row-avatar">${escapeHtml(initials.toUpperCase())}</span>
-          ${escapeHtml(name)}
-        </div>
-        ${m.user_id === ownerId ? '<span class="member-owner-tag">Owner</span>' : ""}
-      `;
-      row.addEventListener("click", () => viewStudentProfileById(m.user_id));
-      detailMembersList.appendChild(row);
-    });
-}
+// ---------- upcoming events (home) ----------
 
-function renderRequestsList(pending, club) {
-  manageRequestsList.innerHTML = "";
-  manageRequestsEmpty.hidden = pending.length !== 0;
+const POST_SELECT = "*, club:clubs(id, name, category, logo_url, status), photos:club_post_photos(url, position)";
 
-  pending.forEach(m => {
-    const name = `${m.profile.first_name} ${m.profile.last_name}`;
-    const row = document.createElement("div");
-    row.className = "member-row" + (m.message ? " has-message" : "");
-    row.innerHTML = `
-      <div class="member-row-top">
-        <div class="member-row-name">${escapeHtml(name)}</div>
-        <div class="member-row-actions">
-          <button class="btn-approve" data-approve-member-id="${m.id}">Approve</button>
-          <button class="btn-danger" data-reject-member-id="${m.id}">Reject</button>
-        </div>
-      </div>
-      ${m.message ? `<p class="member-row-message">"${escapeHtml(m.message)}"</p>` : ""}
-    `;
-    manageRequestsList.appendChild(row);
-  });
-
-  manageRequestsList.querySelectorAll("[data-approve-member-id]").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      btn.disabled = true;
-      const { error } = await supabaseClient
-        .from("club_members")
-        .update({ status: "approved", decided_at: new Date().toISOString() })
-        .eq("id", btn.dataset.approveMemberId);
-      if (error) { showToast(error.message); btn.disabled = false; return; }
-      await loadClubMembership(club);
-    });
-  });
-
-  manageRequestsList.querySelectorAll("[data-reject-member-id]").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      btn.disabled = true;
-      const { error } = await supabaseClient.from("club_members").delete().eq("id", btn.dataset.rejectMemberId);
-      if (error) { showToast(error.message); btn.disabled = false; return; }
-      await loadClubMembership(club);
-    });
-  });
-}
-
-manageEditClubBtn.addEventListener("click", () => openEditClubModal(currentClubDetail));
-
-// ---------- apply to club (with optional message) ----------
-
-const applyModalOverlay = document.getElementById("apply-modal-overlay");
-const applyModalCloseBtn = document.getElementById("apply-modal-close-btn");
-const applyModalCancelBtn = document.getElementById("apply-modal-cancel-btn");
-const formApply = document.getElementById("form-apply");
-const applyError = document.getElementById("apply-error");
-const applyMessageInput = document.getElementById("apply-message");
-
-let applyingToClub = null;
-
-function applyToClub(club) {
-  applyingToClub = club;
-  applyError.textContent = "";
-  formApply.reset();
-  applyModalOverlay.classList.add("open");
-}
-
-function closeApplyModal() {
-  applyModalOverlay.classList.remove("open");
-  applyingToClub = null;
-}
-
-applyModalCloseBtn.addEventListener("click", closeApplyModal);
-applyModalCancelBtn.addEventListener("click", closeApplyModal);
-applyModalOverlay.addEventListener("click", (e) => {
-  if (e.target === applyModalOverlay) closeApplyModal();
-});
-
-formApply.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  applyError.textContent = "";
-
-  const club = applyingToClub;
-  const message = applyMessageInput.value.trim();
-
-  const { error } = await supabaseClient.from("club_members").upsert(
-    {
-      club_id: club.id,
-      user_id: currentUser.id,
-      status: "pending",
-      message,
-      left_at: null,
-      decided_at: null,
-    },
-    { onConflict: "club_id,user_id" }
-  );
+async function renderHomeUpcoming() {
+  const el = $("home-upcoming");
+  el.innerHTML = loadingHtml("Loading events…");
+  const { data, error } = await supabaseClient
+    .from("club_posts")
+    .select(POST_SELECT)
+    .eq("kind", "event")
+    .eq("status", "approved")
+    .gte("event_date", todayDateStr())
+    .order("event_date", { ascending: true })
+    .order("start_time", { ascending: true, nullsFirst: true })
+    .limit(6);
   if (error) {
-    applyError.textContent = error.message;
+    el.innerHTML = errorStateHtml("Couldn't load events.");
     return;
   }
-  closeApplyModal();
-  showToast("Application sent! The club owner will review it.");
-  await loadClubMembership(club);
-});
-
-async function withdrawApplication(rowId, club) {
-  const { error } = await supabaseClient.from("club_members").delete().eq("id", rowId);
-  if (error) { showToast(error.message); return; }
-  await loadClubMembership(club);
+  const events = data.filter(p => p.club && p.club.status === "approved");
+  if (events.length === 0) {
+    el.innerHTML = `<p class="empty-state">No upcoming events right now.</p>`;
+    return;
+  }
+  el.innerHTML = events.map(ev => {
+    const d = parseDateOnly(ev.event_date);
+    return `
+      <a class="upcoming-card" href="#/club/${ev.club.id}/upcoming">
+        <span class="upcoming-poster">
+          ${ev.cover_url
+            ? `<img src="${escapeHtml(ev.cover_url)}" alt="" loading="lazy">`
+            : `<span class="upcoming-date-block"><strong>${d.getDate()}</strong>${d.toLocaleDateString("en-GB", { month: "short" })}</span>`}
+        </span>
+        <span class="upcoming-info">
+          <span class="upcoming-club">${escapeHtml(ev.club.name)}</span>
+          <span class="upcoming-title">${escapeHtml(ev.title)}</span>
+          <span class="upcoming-meta">${icon("calendar")}${escapeHtml(formatEventDay(ev.event_date))}${ev.start_time ? ` · ${escapeHtml(formatTimeRange(ev.start_time, ev.end_time))}` : ""}</span>
+        </span>
+      </a>`;
+  }).join("");
 }
 
-async function leaveClub(rowId, club) {
-  if (!confirm(`Leave ${club.name}?`)) return;
-  const { error } = await supabaseClient
-    .from("club_members")
-    .update({ status: "left", left_at: new Date().toISOString() })
-    .eq("id", rowId);
-  if (error) { showToast(error.message); return; }
-  showToast(`You left ${club.name}.`);
-  await loadClubMembership(club);
-}
+// ---------- school announcements (home, compact) ----------
 
-// ---------- club events ----------
-
-function formatEventDate(iso) {
-  return new Date(iso).toLocaleString(undefined, {
-    year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
-  });
-}
-
-function formatDateOnly(iso) {
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric", month: "long", day: "numeric",
-  });
-}
-
-async function loadClubEvents(club) {
-  const { data: events, error } = await supabaseClient
-    .from("club_events")
+async function loadSchoolAnnouncements() {
+  const { data: announcements, error } = await supabaseClient
+    .from("announcements")
     .select("*")
-    .eq("club_id", club.id)
-    .order("event_date", { ascending: true });
+    .order("event_date", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error(error);
     return;
   }
 
-  detailEventsList.innerHTML = "";
-  detailEventsEmpty.hidden = events.length !== 0;
-  events.forEach(ev => {
-    const card = document.createElement("div");
-    card.className = "event-card";
-    card.innerHTML = `
-      <div class="event-card-info">
-        <h4>${escapeHtml(ev.title)}</h4>
-        <p class="event-card-date">${formatEventDate(ev.event_date)}</p>
-        <p class="event-card-description">${escapeHtml(ev.description || "")}</p>
-      </div>
-    `;
-    detailEventsList.appendChild(card);
-  });
+  const now = new Date();
+  const upcoming = announcements.filter(a => !a.event_date || new Date(a.event_date) >= now).slice(0, 6);
 
-  if (currentClubIsOwner) {
-    manageEventsList.innerHTML = "";
-    events.forEach(ev => {
-      const card = document.createElement("div");
-      card.className = "event-card";
-      card.innerHTML = `
-        <div class="event-card-info">
-          <h4>${escapeHtml(ev.title)}</h4>
-          <p class="event-card-date">${formatEventDate(ev.event_date)}</p>
-          <p class="event-card-description">${escapeHtml(ev.description || "")}</p>
-        </div>
-        <div class="event-card-actions">
-          <button class="btn btn-secondary btn-sm" data-edit-event-id="${ev.id}">Edit</button>
-          <button class="btn-danger" data-delete-event-id="${ev.id}">Delete</button>
-        </div>
-      `;
-      manageEventsList.appendChild(card);
-    });
-
-    manageEventsList.querySelectorAll("[data-edit-event-id]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const ev = events.find(e => e.id === btn.dataset.editEventId);
-        openEditEventModal(club, ev);
-      });
-    });
-
-    manageEventsList.querySelectorAll("[data-delete-event-id]").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        if (!confirm("Delete this event?")) return;
-        btn.disabled = true;
-        const { error: delError } = await supabaseClient
-          .from("club_events")
-          .delete()
-          .eq("id", btn.dataset.deleteEventId);
-        if (delError) { showToast(delError.message); btn.disabled = false; return; }
-        await loadClubEvents(club);
-      });
-    });
-  }
+  $("announcements-section").hidden = upcoming.length === 0;
+  const list = $("announcements-list");
+  list.innerHTML = "";
+  upcoming.forEach(a => list.appendChild(renderSchoolAnnouncementCard(a, false, true)));
 }
 
-let editingEventId = null;
-
-function openAddEventModal() {
-  editingEventId = null;
-  eventModalTitle.textContent = "Add an event";
-  eventModalSubmitBtn.textContent = "Add event";
-  eventError.textContent = "";
-  formEvent.reset();
-  eventModalOverlay.classList.add("open");
-}
-
-function openEditEventModal(club, ev) {
-  editingEventId = ev.id;
-  eventModalTitle.textContent = "Edit event";
-  eventModalSubmitBtn.textContent = "Save changes";
-  eventError.textContent = "";
-  document.getElementById("event-title").value = ev.title;
-  document.getElementById("event-description").value = ev.description || "";
-  const local = new Date(ev.event_date);
-  local.setMinutes(local.getMinutes() - local.getTimezoneOffset());
-  document.getElementById("event-date").value = local.toISOString().slice(0, 16);
-  eventModalOverlay.classList.add("open");
-}
-
-function closeEventModal() {
-  eventModalOverlay.classList.remove("open");
-  editingEventId = null;
-}
-
-manageAddEventBtn.addEventListener("click", openAddEventModal);
-eventModalCloseBtn.addEventListener("click", closeEventModal);
-eventModalCancelBtn.addEventListener("click", closeEventModal);
-eventModalOverlay.addEventListener("click", (e) => {
-  if (e.target === eventModalOverlay) closeEventModal();
-});
-
-formEvent.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  eventError.textContent = "";
-
-  const title = document.getElementById("event-title").value.trim();
-  const dateValue = document.getElementById("event-date").value;
-  const description = document.getElementById("event-description").value.trim();
-
-  if (!title || !dateValue) {
-    eventError.textContent = "Please fill in the required fields.";
-    return;
-  }
-
-  const eventDate = new Date(dateValue).toISOString();
-
-  if (editingEventId) {
-    const { error } = await supabaseClient
-      .from("club_events")
-      .update({ title, description, event_date: eventDate })
-      .eq("id", editingEventId);
-    if (error) { eventError.textContent = error.message; return; }
-    showToast("Event updated.");
-  } else {
-    const { error } = await supabaseClient.from("club_events").insert({
-      club_id: currentClubDetail.id,
-      title,
-      description,
-      event_date: eventDate,
-      created_by: currentUser.id,
-    });
-    if (error) { eventError.textContent = error.message; return; }
-    showToast("Event added.");
-  }
-
-  closeEventModal();
-  await loadClubEvents(currentClubDetail);
-});
-
-// ---------- announcements ----------
-
-function renderAnnouncementCard(a, isPast, compact = false) {
+function renderSchoolAnnouncementCard(a, isPast, compact = false) {
   const card = document.createElement("article");
   card.className = "announcement-card" + (isPast ? " is-past" : "") + (compact ? " is-compact" : "");
 
-  let tagText = "Announcement";
+  let tagText = "School news";
   let tagClass = "is-news";
   if (a.event_date) {
     tagText = isPast ? "Past Event" : "Upcoming Event";
@@ -1227,7 +917,7 @@ function renderAnnouncementCard(a, isPast, compact = false) {
     const timeText = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
     eventBlock = compact
       ? `<p class="announcement-card-date">${icon("calendar")}${dateText} · ${timeText}</p>`
-      : `
+      : a.image_url ? `<p class="announcement-card-date">${icon("calendar")}${dateText} · ${timeText}</p>` : `
         <div class="announcement-poster">
           <span class="announcement-poster-kicker">SHZB Announcement</span>
           <span class="announcement-poster-title">${escapeHtml(a.title)}</span>
@@ -1245,6 +935,7 @@ function renderAnnouncementCard(a, isPast, compact = false) {
       </span>
       <span class="announcement-tag ${tagClass}">${tagText}</span>
     </header>
+    ${a.image_url && !compact ? `<img class="feed-cover" src="${escapeHtml(a.image_url)}" alt="" loading="lazy">` : ""}
     <h4>${escapeHtml(a.title)}</h4>
     <p class="announcement-card-description">${escapeHtml(a.description || "")}</p>
     ${eventBlock}
@@ -1252,235 +943,1299 @@ function renderAnnouncementCard(a, isPast, compact = false) {
   return card;
 }
 
-const announcementFilterButtons = document.querySelectorAll("[data-announcement-filter]");
-const announcementsUpcomingGroup = document.getElementById("announcements-upcoming-group");
-const announcementsPastGroup = document.getElementById("announcements-past-group");
+// ============================================================
+// MY CLUBS
+// ============================================================
 
-announcementFilterButtons.forEach(btn => {
-  btn.addEventListener("click", () => {
-    announcementFilterButtons.forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    const filter = btn.dataset.announcementFilter;
-    announcementsUpcomingGroup.hidden = filter === "past";
-    announcementsPastGroup.hidden = filter === "upcoming";
-  });
-});
+async function renderMyClubs() {
+  const grid = $("my-clubs-grid");
+  grid.innerHTML = loadingHtml("Loading your clubs…");
 
-async function loadAnnouncements() {
-  const { data: announcements, error } = await supabaseClient
-    .from("announcements")
-    .select("*")
-    .order("event_date", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false });
+  const [{ data: rows, error }, { data: requests }] = await Promise.all([
+    supabaseClient
+      .from("club_members")
+      .select("*, club:clubs(*)")
+      .eq("user_id", currentUser.id)
+      .eq("status", "approved")
+      .order("joined_at", { ascending: false }),
+    supabaseClient
+      .from("clubs")
+      .select("*")
+      .eq("created_by", currentUser.id)
+      .in("status", ["pending", "changes_requested", "rejected"])
+      .order("submitted_at", { ascending: false }),
+  ]);
 
+  grid.innerHTML = "";
   if (error) {
-    console.error(error);
+    grid.innerHTML = errorStateHtml();
     return;
   }
 
-  const now = new Date();
-  const upcoming = announcements.filter(a => !a.event_date || new Date(a.event_date) >= now);
+  const memberships = (rows || []).filter(r => r.club);
+  $("my-clubs-empty").hidden = memberships.length !== 0;
 
-  announcementsSection.hidden = upcoming.length === 0;
-  announcementsList.innerHTML = "";
-  upcoming.forEach(a => announcementsList.appendChild(renderAnnouncementCard(a, false, true)));
-}
+  const ids = memberships.map(r => r.club.id);
+  const [counts, leaders] = await Promise.all([fetchMemberCounts(ids), fetchActiveLeaders(ids)]);
 
-async function loadAnnouncementsPage() {
-  const { data: announcements, error } = await supabaseClient
-    .from("announcements")
-    .select("*")
-    .order("event_date", { ascending: true, nullsFirst: false })
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error(error);
-    return;
-  }
-
-  const now = new Date();
-  const upcoming = announcements.filter(a => !a.event_date || new Date(a.event_date) >= now);
-  const past = announcements
-    .filter(a => a.event_date && new Date(a.event_date) < now)
-    .sort((a, b) => new Date(b.event_date) - new Date(a.event_date));
-
-  announcementsPageUpcoming.innerHTML = "";
-  announcementsPageUpcomingEmpty.hidden = upcoming.length !== 0;
-  upcoming.forEach(a => announcementsPageUpcoming.appendChild(renderAnnouncementCard(a, false)));
-
-  announcementsPagePast.innerHTML = "";
-  announcementsPagePastEmpty.hidden = past.length !== 0;
-  past.forEach(a => announcementsPagePast.appendChild(renderAnnouncementCard(a, true)));
-}
-
-let activeCategoryFilter = "All";
-
-const categoryFilterButtons = document.querySelectorAll(".category-filter-btn");
-categoryFilterButtons.forEach(btn => {
-  btn.addEventListener("click", () => {
-    categoryFilterButtons.forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    activeCategoryFilter = btn.dataset.categoryFilter;
-    renderClubs();
+  memberships.forEach(row => {
+    const club = row.club;
+    const leading = isLeaderOf(club.id);
+    const tag = leading
+      ? '<span class="club-card-ownertag">Leader</span>'
+      : row.leave_requested_at
+        ? '<span class="club-card-ownertag is-pending">Leave requested</span>'
+        : '<span class="club-card-ownertag is-member">Member</span>';
+    grid.appendChild(buildClubCard(club, {
+      memberCount: counts[club.id] || 0,
+      leaderName: mainLeaderName(leaders[club.id]),
+      tag,
+      note: club.status !== "approved" ? `Club ${STATUS_LABELS[club.status] || club.status}` : null,
+    }));
   });
+
+  renderMyClubRequests(requests || []);
+}
+
+function renderMyClubRequests(requests) {
+  const section = $("my-requests-section");
+  const list = $("my-requests-list");
+  section.hidden = requests.length === 0;
+  list.innerHTML = "";
+
+  requests.forEach(club => {
+    const row = document.createElement("div");
+    row.className = "request-row";
+    const canEdit = club.status === "pending" || club.status === "changes_requested";
+    row.innerHTML = `
+      <span class="request-logo" data-category="${escapeHtml(club.category)}">${clubLogoHtml(club)}</span>
+      <div class="request-main">
+        <div class="request-title"><strong>${escapeHtml(club.name)}</strong> ${statusBadge(club.status)}</div>
+        <div class="request-meta">${escapeHtml(club.category)} · submitted ${formatShortDate(club.submitted_at)}</div>
+        ${club.review_note ? `<p class="review-note"><strong>Administrator:</strong> ${escapeHtml(club.review_note)}</p>` : ""}
+      </div>
+      <div class="request-actions">
+        ${canEdit ? `<button class="btn btn-secondary btn-sm" data-edit>${club.status === "changes_requested" ? "Edit &amp; resubmit" : "Edit"}</button>` : ""}
+        <button class="btn-danger" data-withdraw>${club.status === "rejected" ? "Dismiss" : "Withdraw"}</button>
+      </div>`;
+    const editBtn = row.querySelector("[data-edit]");
+    if (editBtn) editBtn.addEventListener("click", () => openClubRequestModal(club));
+    row.querySelector("[data-withdraw]").addEventListener("click", async (e) => {
+      const ok = await confirmDialog(
+        club.status === "rejected" ? `Remove the rejected request "${club.name}" from your list?` : `Withdraw your request for "${club.name}"?`,
+        { title: club.status === "rejected" ? "Dismiss request" : "Withdraw request", confirmText: club.status === "rejected" ? "Dismiss" : "Withdraw", danger: true }
+      );
+      if (!ok) return;
+      await withBusy(e.currentTarget, "…", async () => {
+        const { error } = await supabaseClient.rpc("withdraw_submission", { p_kind: "club", p_id: club.id });
+        if (error) return showToast(friendlyError(error), "error");
+        showToast("Request removed.", "success");
+        renderMyClubs();
+      });
+    });
+    list.appendChild(row);
+  });
+}
+
+// ---------- club request modal (create / edit + resubmit) ----------
+
+const formCreateClub = $("form-create-club");
+const createClubError = $("create-club-error");
+let editingClubRequestId = null;
+let studentOptionsCache = null;
+
+const clubLogoPicker = setupImagePicker({
+  input: $("club-logo-input"),
+  preview: $("club-logo-preview"),
+  removeBtn: $("club-logo-remove"),
+  folder: "logos",
+  errorEl: createClubError,
 });
 
-async function renderClubs() {
-  let query = supabaseClient
-    .from("clubs")
-    .select("*, creator:profiles(first_name, last_name)")
-    .eq("status", "approved")
-    .order("created_at", { ascending: false });
-
-  if (activeCategoryFilter !== "All") {
-    query = query.eq("category", activeCategoryFilter);
-  }
-
-  const { data: clubs, error } = await query;
-
-  homeClubs = error || !clubs ? [] : clubs;
-  homeMemberCounts = await fetchMemberCounts(homeClubs.map(c => c.id));
-  applyClubSearch();
+async function loadStudentOptions() {
+  if (studentOptionsCache) return studentOptionsCache;
+  const { data } = await supabaseClient
+    .from("profiles")
+    .select("id, first_name, last_name, graduation_year, class_section")
+    .eq("account_type", "student")
+    .eq("status", "active")
+    .neq("role", "admin")
+    .order("first_name");
+  studentOptionsCache = data || [];
+  return studentOptionsCache;
 }
 
-let homeClubs = [];
-let homeMemberCounts = {};
-const clubSearchInput = document.getElementById("club-search");
-
-function applyClubSearch() {
-  const term = clubSearchInput.value.trim().toLowerCase();
-  const filtered = term
-    ? homeClubs.filter(c => `${c.name} ${c.description}`.toLowerCase().includes(term))
-    : homeClubs;
-
-  clubGrid.innerHTML = "";
-  clubEmpty.hidden = filtered.length !== 0;
-
-  filtered.forEach(club => {
-    const createdByName = `${club.creator.first_name} ${club.creator.last_name}`;
-    const card = buildClubCard(club, { memberCount: homeMemberCounts[club.id] || 0 });
-    card.addEventListener("click", () => showClubDetail({ ...club, createdByName }));
-    clubGrid.appendChild(card);
-  });
-}
-
-clubSearchInput.addEventListener("input", applyClubSearch);
-
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-// ---------- create club modal ----------
-
-let editingClubId = null;
-
-function openCreateClubModal() {
-  editingClubId = null;
-  modalTitle.textContent = "Create a new club";
-  modalSubmitBtn.textContent = "Create club";
+async function openClubRequestModal(club = null) {
+  editingClubRequestId = club ? club.id : null;
+  $("modal-title").textContent = club ? "Edit club request" : "Request a new club";
+  $("modal-submit-btn").textContent = club ? "Resubmit request" : "Submit request";
   createClubError.textContent = "";
   formCreateClub.reset();
-  modalOverlay.classList.add("open");
+  if (categoriesCache.length === 0) await loadCategories();
+
+  const students = await loadStudentOptions();
+  $("club-leader").innerHTML = `<option value="${currentUser.id}">Me (${escapeHtml(fullName(currentUser.profile))})</option>` +
+    students.filter(s => s.id !== currentUser.id).map(s => `
+      <option value="${s.id}">${escapeHtml(fullName(s))}${s.graduation_year ? ` — ${escapeHtml(formatGradeLabel(s.graduation_year, s.class_section))}` : ""}</option>
+    `).join("");
+
+  if (club) {
+    $("club-name").value = club.name;
+    $("club-category").value = club.category;
+    $("club-description").value = club.description;
+    $("club-leader").value = club.proposed_leader_id || currentUser.id;
+  }
+  clubLogoPicker.setUrl(club ? club.logo_url : null);
+  openModal("modal-overlay");
+  $("club-name").focus();
 }
 
-function openEditClubModal(club) {
-  editingClubId = club.id;
-  modalTitle.textContent = "Edit club";
-  modalSubmitBtn.textContent = "Save changes";
-  createClubError.textContent = "";
-  document.getElementById("club-name").value = club.name;
-  document.getElementById("club-category").value = club.category;
-  document.getElementById("club-description").value = club.description;
-  modalOverlay.classList.add("open");
-}
-
-function closeModal() {
-  modalOverlay.classList.remove("open");
-  editingClubId = null;
-}
-
-fabCreateClub.addEventListener("click", openCreateClubModal);
-document.getElementById("my-clubs-create-btn").addEventListener("click", openCreateClubModal);
-modalCloseBtn.addEventListener("click", closeModal);
-modalCancelBtn.addEventListener("click", closeModal);
-modalOverlay.addEventListener("click", (e) => {
-  if (e.target === modalOverlay) closeModal();
-});
+$("create-club-btn").addEventListener("click", () => openClubRequestModal());
+$("my-clubs-create-btn").addEventListener("click", () => openClubRequestModal());
+$("modal-close-btn").addEventListener("click", () => closeModalById("modal-overlay"));
+$("modal-cancel-btn").addEventListener("click", () => closeModalById("modal-overlay"));
 
 formCreateClub.addEventListener("submit", async (e) => {
   e.preventDefault();
   createClubError.textContent = "";
 
-  const name = document.getElementById("club-name").value.trim();
-  const category = document.getElementById("club-category").value;
-  const description = document.getElementById("club-description").value.trim();
+  const name = $("club-name").value.trim();
+  const category = $("club-category").value;
+  const description = $("club-description").value.trim();
+  if (name.length < 2) { createClubError.textContent = "Club name must be at least 2 characters."; return; }
+  if (description.length < 10) { createClubError.textContent = "Please write a description of at least 10 characters."; return; }
 
-  if (!name || !description) {
-    createClubError.textContent = "Please fill in the required fields.";
-    return;
-  }
-
-  if (editingClubId) {
-    const { error } = await supabaseClient
-      .from("clubs")
-      .update({ name, category, description })
-      .eq("id", editingClubId);
-
-    if (error) {
-      createClubError.textContent = error.message;
+  await withBusy($("modal-submit-btn"), "Submitting…", async () => {
+    let logoUrl;
+    try {
+      logoUrl = await clubLogoPicker.getUrl();
+    } catch (err) {
+      createClubError.textContent = friendlyError(err);
       return;
     }
-
-    const updatedClub = { ...currentClubDetail, name, category, description };
-    closeModal();
-    showToast("Club updated.");
-    await showClubDetail(updatedClub);
-    return;
-  }
-
-  const { error } = await supabaseClient.from("clubs").insert({
-    name,
-    category,
-    description,
-    created_by: currentUser.id,
-    status: "pending",
+    const { error } = await supabaseClient.rpc("submit_club_request", {
+      p_name: name,
+      p_category: category,
+      p_description: description,
+      p_logo_url: logoUrl,
+      p_proposed_leader: $("club-leader").value || null,
+      p_club_id: editingClubRequestId,
+    });
+    if (error) {
+      createClubError.textContent = friendlyError(error);
+      return;
+    }
+    closeModalById("modal-overlay");
+    showToast("Request submitted! An administrator will review it before the club appears publicly.", "success");
+    navigate("#/my-clubs");
   });
-
-  if (error) {
-    createClubError.textContent = error.message;
-    return;
-  }
-
-  closeModal();
-  showView("my-clubs");
-  showToast("Club submitted! An admin will review it before it appears publicly.");
 });
 
-let toastTimer = null;
+// ============================================================
+// ANNOUNCEMENTS FEED
+// ============================================================
 
-function showToast(message) {
-  clearTimeout(toastTimer);
-  toast.textContent = message;
-  toast.hidden = false;
-  requestAnimationFrame(() => toast.classList.add("show"));
-  toastTimer = setTimeout(() => {
-    toast.classList.remove("show");
-    setTimeout(() => { toast.hidden = true; }, 300);
-  }, 4000);
+let feedItems = [];
+let feedFilter = "all";
+let feedShown = 20;
+const FEED_PAGE = 20;
+const feedFilterButtons = document.querySelectorAll("[data-feed-filter]");
+
+function setFeedFilter(filter) {
+  feedFilter = ["all", "school", "club", "events", "updates", "past"].includes(filter) ? filter : "all";
+  feedFilterButtons.forEach(b => b.classList.toggle("active", b.dataset.feedFilter === feedFilter));
+  feedShown = FEED_PAGE;
 }
 
-// ---------- boot ----------
+feedFilterButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    setFeedFilter(btn.dataset.feedFilter);
+    history.replaceState(null, "", `#/announcements${feedFilter === "all" ? "" : "/" + feedFilter}`);
+    renderFeed();
+  });
+});
+
+$("feed-more-btn").addEventListener("click", () => {
+  feedShown += FEED_PAGE;
+  renderFeed();
+});
+
+async function loadFeed() {
+  const list = $("feed-list");
+  list.innerHTML = loadingHtml("Loading announcements…");
+  $("feed-empty").hidden = true;
+
+  const [{ data: school, error: e1 }, { data: posts, error: e2 }] = await Promise.all([
+    supabaseClient.from("announcements").select("*").order("created_at", { ascending: false }).limit(300),
+    supabaseClient.from("club_posts").select(POST_SELECT).eq("status", "approved").order("published_at", { ascending: false }).limit(500),
+  ]);
+  if (e1 || e2) {
+    list.innerHTML = errorStateHtml("Couldn't load announcements. Please refresh.");
+    return;
+  }
+
+  const today = todayDateStr();
+  const now = new Date();
+  feedItems = [
+    ...school.map(a => ({
+      source: "school",
+      kind: a.event_date ? "event" : "announcement",
+      isPast: !!a.event_date && new Date(a.event_date) < now,
+      sortDate: a.created_at,
+      eventSort: a.event_date,
+      data: a,
+    })),
+    ...posts.filter(p => p.club && p.club.status !== "suspended").map(p => ({
+      source: "club",
+      kind: p.kind,
+      isPast: p.kind === "event" && p.event_date < today,
+      sortDate: p.published_at || p.created_at,
+      eventSort: p.event_date ? `${p.event_date}T${p.start_time || "00:00"}` : null,
+      data: p,
+    })),
+  ];
+  renderFeed();
+}
+
+function filteredFeed() {
+  let items;
+  switch (feedFilter) {
+    case "school":
+      items = feedItems.filter(i => i.source === "school" && !i.isPast);
+      break;
+    case "club":
+      items = feedItems.filter(i => i.source === "club" && i.kind === "announcement");
+      break;
+    case "events":
+      return feedItems.filter(i => i.kind === "event" && !i.isPast)
+        .sort((a, b) => String(a.eventSort).localeCompare(String(b.eventSort)));
+    case "updates":
+      items = feedItems.filter(i => i.kind === "event_result");
+      break;
+    case "past":
+      return feedItems.filter(i => i.kind === "event" && i.isPast)
+        .sort((a, b) => String(b.eventSort).localeCompare(String(a.eventSort)));
+    default:
+      // past events are archived into each club's event history
+      items = feedItems.filter(i => !i.isPast);
+  }
+  return items.sort((a, b) => new Date(b.sortDate) - new Date(a.sortDate));
+}
+
+function renderFeed() {
+  const list = $("feed-list");
+  const items = filteredFeed();
+  list.innerHTML = "";
+  $("feed-empty").hidden = items.length !== 0;
+  items.slice(0, feedShown).forEach(item => {
+    list.appendChild(item.source === "school"
+      ? renderSchoolAnnouncementCard(item.data, item.isPast)
+      : renderClubPostCard(item.data, { showClub: true }));
+  });
+  $("feed-more-btn").hidden = items.length <= feedShown;
+}
+
+const POST_KIND_TAGS = {
+  announcement: ["Club announcement", "is-news"],
+  event: ["Upcoming event", "is-upcoming"],
+  event_result: ["Event update", "is-result"],
+};
+
+function photoGridHtml(photos) {
+  const sorted = (photos || []).slice().sort((a, b) => a.position - b.position).slice(0, 3);
+  if (sorted.length === 0) return "";
+  return `<div class="photo-grid photos-${sorted.length}">${sorted.map(p => `
+    <a href="${escapeHtml(p.url)}" target="_blank" rel="noopener"><img src="${escapeHtml(p.url)}" alt="Event photo" loading="lazy"></a>
+  `).join("")}</div>`;
+}
+
+function eventDetailsHtml(post) {
+  if (post.kind !== "event") return "";
+  return `
+    <div class="event-details">
+      <span>${icon("calendar")}${escapeHtml(formatEventDay(post.event_date))}</span>
+      ${post.start_time ? `<span>${icon("clock")}${escapeHtml(formatTimeRange(post.start_time, post.end_time))}</span>` : ""}
+      ${post.location ? `<span>${icon("mapPin")}${escapeHtml(post.location)}</span>` : ""}
+    </div>`;
+}
+
+// One card for any approved club post. The club is shown as the author.
+function renderClubPostCard(post, { showClub = true, parentTitle = null } = {}) {
+  const card = document.createElement("article");
+  const isPastEvent = post.kind === "event" && post.event_date < todayDateStr();
+  card.className = "announcement-card feed-card" + (isPastEvent ? " is-past" : "");
+  let [tagText, tagClass] = POST_KIND_TAGS[post.kind] || ["Post", "is-news"];
+  if (isPastEvent) { tagText = "Completed event"; tagClass = "is-past"; }
+  const club = post.club || {};
+
+  card.innerHTML = `
+    <header class="announcement-card-head">
+      ${showClub ? `
+        <a class="feed-club-logo" href="#/club/${club.id}" data-category="${escapeHtml(club.category || "Other")}">${clubLogoHtml(club)}</a>
+        <span class="announcement-card-source">
+          <a href="#/club/${club.id}"><strong>${escapeHtml(club.name || "Club")}</strong></a>
+          <span>Posted on ${formatShortDate(post.published_at || post.created_at)}</span>
+        </span>` : `
+        <span class="announcement-card-source">
+          <span>Posted on ${formatShortDate(post.published_at || post.created_at)}</span>
+        </span>`}
+      <span class="announcement-tag ${tagClass}">${tagText}</span>
+    </header>
+    ${post.cover_url ? `<img class="feed-cover" src="${escapeHtml(post.cover_url)}" alt="" loading="lazy">` : ""}
+    <h4>${escapeHtml(post.title)}</h4>
+    ${eventDetailsHtml(post)}
+    ${post.kind === "event_result" && parentTitle ? `<p class="feed-parent">Results of: <strong>${escapeHtml(parentTitle)}</strong></p>` : ""}
+    ${post.body ? `<p class="announcement-card-description preserve-lines">${escapeHtml(post.body)}</p>` : ""}
+    ${photoGridHtml(post.photos)}
+  `;
+  return card;
+}
+
+// ============================================================
+// STUDENTS DIRECTORY
+// ============================================================
+
+let allPeopleCache = [];
+let currentClubsByUser = {};
+let activePeopleFilter = "all";
+let studentsShown = 36;
+const STUDENTS_PAGE = 36;
+const studentsSearchInput = $("students-search");
+
+const peopleFilterButtons = document.querySelectorAll("[data-people-filter]");
+peopleFilterButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    peopleFilterButtons.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activePeopleFilter = btn.dataset.peopleFilter;
+    studentsShown = STUDENTS_PAGE;
+    applyStudentSearch();
+  });
+});
+
+["students-grade", "students-class"].forEach(id => $(id).addEventListener("change", () => {
+  studentsShown = STUDENTS_PAGE;
+  applyStudentSearch();
+}));
+studentsSearchInput.addEventListener("input", () => {
+  studentsShown = STUDENTS_PAGE;
+  applyStudentSearch();
+});
+$("students-more-btn").addEventListener("click", () => {
+  studentsShown += STUDENTS_PAGE;
+  applyStudentSearch();
+});
+
+function profileSubtitle(profile) {
+  if (profile.account_type === "teacher") return "Teacher";
+  return formatGradeLabel(profile.graduation_year, profile.class_section) || "Student";
+}
+
+async function renderStudents() {
+  const grid = $("students-grid");
+  if (allPeopleCache.length === 0) grid.innerHTML = loadingHtml("Loading people…");
+
+  const [{ data: people, error }, { data: memberships }] = await Promise.all([
+    supabaseClient
+      .from("profiles")
+      .select("id, first_name, last_name, account_type, graduation_year, class_section, role, status")
+      .in("account_type", ["student", "teacher"])
+      .neq("role", "admin")
+      .order("first_name", { ascending: true }),
+    supabaseClient
+      .from("club_members")
+      .select("user_id, club:clubs(id, name, status)")
+      .eq("status", "approved"),
+  ]);
+
+  if (error) {
+    grid.innerHTML = errorStateHtml("Couldn't load the directory.");
+    return;
+  }
+
+  currentClubsByUser = {};
+  (memberships || []).forEach(m => {
+    if (!m.club || m.club.status !== "approved") return;
+    (currentClubsByUser[m.user_id] = currentClubsByUser[m.user_id] || []).push(m.club);
+  });
+
+  allPeopleCache = people.filter(p => p.status !== "suspended");
+  applyStudentSearch();
+}
+
+function applyStudentSearch() {
+  let term = studentsSearchInput.value.trim().toLowerCase();
+  let gradeFilter = $("students-grade").value;
+  let classFilter = $("students-class").value;
+
+  // "10B", "10 b" or "grade 10" in the search box work as grade/class filters
+  const gradeMatch = term.match(/^(?:grade\s*)?(\d{1,2})\s*([abc])?$/i);
+  if (gradeMatch) {
+    gradeFilter = gradeMatch[1];
+    if (gradeMatch[2]) classFilter = gradeMatch[2].toUpperCase();
+    term = "";
+  }
+
+  const filtered = allPeopleCache.filter(p => {
+    if (activePeopleFilter !== "all" && p.account_type !== activePeopleFilter) return false;
+    if (gradeFilter || classFilter) {
+      if (p.account_type !== "student" || !p.graduation_year) return false;
+      if (gradeFilter && String(computeCurrentGrade(p.graduation_year)) !== gradeFilter) return false;
+      if (classFilter && p.class_section !== classFilter) return false;
+    }
+    return !term || fullName(p).toLowerCase().includes(term);
+  });
+
+  const grid = $("students-grid");
+  grid.innerHTML = "";
+  $("students-empty").hidden = filtered.length !== 0;
+  $("students-count").textContent = filtered.length ? `${filtered.length} ${filtered.length === 1 ? "person" : "people"}` : "";
+
+  filtered.slice(0, studentsShown).forEach(p => {
+    const isTeacher = p.account_type === "teacher";
+    const clubs = currentClubsByUser[p.id] || [];
+    const card = document.createElement("a");
+    card.className = "person-card";
+    card.href = `#/student/${p.id}`;
+    card.innerHTML = `
+      <span class="person-avatar">${escapeHtml(initials(p))}</span>
+      <span class="person-info">
+        <span class="person-name">${escapeHtml(fullName(p))}</span>
+        <span class="person-meta">${icon(isTeacher ? "book" : "gradCap")}${escapeHtml(profileSubtitle(p))}</span>
+        ${!isTeacher && clubs.length ? `<span class="person-clubs">${clubs.slice(0, 2).map(c => `<span class="mini-chip">${escapeHtml(c.name)}</span>`).join("")}${clubs.length > 2 ? `<span class="mini-chip is-more">+${clubs.length - 2}</span>` : ""}</span>` : ""}
+      </span>
+      <span class="person-chevron">${icon("chevronRight")}</span>
+    `;
+    grid.appendChild(card);
+  });
+  $("students-more-btn").hidden = filtered.length <= studentsShown;
+}
+
+// ============================================================
+// STUDENT PROFILE / MY PROFILE
+// ============================================================
+
+let profileShownId = null;
+$("student-profile-back-btn").addEventListener("click", goBack);
+
+async function showStudentProfile(userId, isOwn) {
+  profileShownId = userId;
+  $("student-profile-back-btn").hidden = isOwn;
+  $("student-profile-name").textContent = "Loading…";
+  $("student-profile-meta").textContent = "";
+  $("student-profile-avatar").textContent = "";
+  $("student-profile-bio").textContent = "";
+  ["student-profile-current", "student-profile-history", "student-profile-leadership"].forEach(id => { $(id).innerHTML = ""; });
+  $("my-applications-card").hidden = true;
+  $("my-account-card").hidden = true;
+
+  const [{ data: profile, error }, { data: history }, { data: leaderships }] = await Promise.all([
+    supabaseClient.from("profiles").select("*").eq("id", userId).single(),
+    supabaseClient
+      .from("club_members")
+      .select("*, club:clubs(id, name, category, logo_url, status)")
+      .eq("user_id", userId)
+      .order("joined_at", { ascending: false }),
+    supabaseClient
+      .from("club_leaders")
+      .select("*, club:clubs(id, name, category, logo_url, status)")
+      .eq("user_id", userId)
+      .order("started_at", { ascending: false }),
+  ]);
+
+  if (profileShownId !== userId) return; // user navigated away meanwhile
+  if (error || !profile) {
+    showNotFound("This profile doesn't exist.");
+    return;
+  }
+
+  const isTeacher = profile.account_type === "teacher";
+  $("student-profile-avatar").textContent = initials(profile);
+  $("student-profile-name").textContent = fullName(profile);
+  $("student-profile-meta").textContent = profile.role === "admin" ? "Administrator" : profileSubtitle(profile);
+  $("student-profile-bio").textContent = profile.bio || "No bio yet.";
+  $("student-profile-bio").classList.toggle("is-empty", !profile.bio);
+  $("student-profile-edit-btn").hidden = !isOwn;
+  $("student-profile-edit-btn").onclick = () => openEditProfileModal(profile);
+  $("student-profile-club-sections").hidden = isTeacher || profile.role === "admin";
+
+  const rows = (history || []).filter(h => h.club);
+  const leads = (leaderships || []).filter(l => l.club);
+  const activeLeadByClub = {};
+  leads.filter(l => !l.ended_at).forEach(l => { activeLeadByClub[l.club_id] = l.position; });
+
+  const current = rows.filter(h => h.status === "approved");
+  const previous = rows.filter(h => h.status === "left").sort((a, b) => new Date(b.left_at) - new Date(a.left_at));
+
+  renderMembershipList($("student-profile-current"), current, { activeLeadByClub, isOwn });
+  $("student-profile-current-empty").hidden = current.length !== 0;
+  renderMembershipList($("student-profile-history"), previous, { activeLeadByClub: {}, isOwn });
+  $("student-profile-history-empty").hidden = previous.length !== 0;
+
+  $("student-profile-leadership-card").hidden = leads.length === 0;
+  $("student-profile-leadership").innerHTML = leads.map(l => `
+    <a class="leadership-row" href="#/club/${l.club.id}">
+      <span class="history-icon" data-category="${escapeHtml(l.club.category)}">${clubLogoHtml(l.club)}</span>
+      <span class="leadership-main">
+        <strong>${escapeHtml(l.club.name)}</strong>
+        <span>${l.position === "leader" ? "Leader" : "Co-leader"}</span>
+      </span>
+      <span class="leadership-dates">${formatLongDate(l.started_at)} – ${l.ended_at ? formatLongDate(l.ended_at) : "Present"}</span>
+    </a>`).join("");
+
+  if (isOwn) {
+    $("my-account-card").hidden = false;
+    $("my-account-email").innerHTML = `Signed in as <strong>${escapeHtml(currentUser.email)}</strong>`;
+    if (currentUser.isStudent) {
+      $("my-applications-card").hidden = false;
+      loadMyApplications();
+    }
+  }
+}
+
+function renderMembershipList(container, rows, { activeLeadByClub, isOwn }) {
+  container.innerHTML = "";
+  rows.forEach(h => {
+    const isCurrent = h.status === "approved";
+    const club = h.club;
+    const position = activeLeadByClub[club.id];
+    const role = position === "leader" ? "Leader" : position === "co_leader" ? "Co-leader" : "Member";
+    const item = document.createElement("div");
+    item.className = "history-item" + (isCurrent ? " is-current" : "");
+    item.innerHTML = `
+      <span class="history-dot" aria-hidden="true"></span>
+      <a class="history-card" href="#/club/${club.id}">
+        <span class="history-icon${club.logo_url ? " has-logo" : ""}" data-category="${escapeHtml(club.category)}">${clubLogoHtml(club)}</span>
+        <div class="history-body">
+          <h4>${escapeHtml(club.name)}${club.status === "archived" ? ' <span class="muted-tag">Archived</span>' : ""}</h4>
+          <span class="history-status">${isCurrent ? "Current Member" : h.end_reason === "removed" ? "Membership ended" : "Past Member"}</span>
+          <div class="history-meta">
+            <div class="history-meta-item">
+              ${icon("user")}
+              <div><span class="history-meta-label">Role</span><span class="history-meta-value">${role}</span></div>
+            </div>
+            <div class="history-meta-item">
+              ${icon("calendar")}
+              <div><span class="history-meta-label">${isCurrent ? "Member since" : "Membership"}</span>
+              <span class="history-meta-value">${formatLongDate(h.joined_at)} – ${isCurrent ? "Present" : formatLongDate(h.left_at)}</span></div>
+            </div>
+          </div>
+          ${isCurrent && isOwn && h.leave_requested_at ? `<span class="pill pill-pending pill-inline">Leave requested ${formatShortDate(h.leave_requested_at)}</span>` : ""}
+        </div>
+      </a>`;
+    container.appendChild(item);
+  });
+}
+
+// ---------- my applications ----------
+
+let myApplicationsCache = [];
+let myApplicationsFilter = "all";
+const appFilterButtons = document.querySelectorAll("[data-app-filter]");
+appFilterButtons.forEach(btn => btn.addEventListener("click", () => {
+  myApplicationsFilter = btn.dataset.appFilter;
+  appFilterButtons.forEach(b => b.classList.toggle("active", b === btn));
+  renderMyApplications();
+}));
+
+async function loadMyApplications() {
+  const list = $("my-applications-list");
+  list.innerHTML = loadingHtml();
+  const { data, error } = await supabaseClient
+    .from("applications")
+    .select("*, club:clubs(id, name, category, logo_url)")
+    .eq("user_id", currentUser.id)
+    .order("submitted_at", { ascending: false });
+  if (error) {
+    list.innerHTML = errorStateHtml();
+    return;
+  }
+  myApplicationsCache = data;
+  renderMyApplications();
+}
+
+function renderMyApplications() {
+  const rows = myApplicationsCache.filter(a => myApplicationsFilter === "all" || a.status === myApplicationsFilter);
+  const list = $("my-applications-list");
+  list.innerHTML = "";
+  $("my-applications-empty").hidden = rows.length !== 0;
+
+  rows.forEach(a => {
+    const club = a.club || { name: "Removed club", category: "Other" };
+    const row = document.createElement("div");
+    row.className = "request-row";
+    row.innerHTML = `
+      <span class="request-logo" data-category="${escapeHtml(club.category)}">${clubLogoHtml(club)}</span>
+      <div class="request-main">
+        <div class="request-title">${a.club ? `<a href="#/club/${club.id}"><strong>${escapeHtml(club.name)}</strong></a>` : `<strong>${escapeHtml(club.name)}</strong>`} ${statusBadge(a.status)}</div>
+        <div class="request-meta">Applied ${formatShortDate(a.submitted_at)}${a.decided_at && a.status !== "pending" ? ` · ${STATUS_LABELS[a.status]} ${formatShortDate(a.decided_at)}` : ""}</div>
+      </div>
+      <div class="request-actions">
+        ${a.status === "pending" ? `<button class="btn btn-secondary btn-sm" data-withdraw>Withdraw</button>` : ""}
+      </div>`;
+    const btn = row.querySelector("[data-withdraw]");
+    if (btn) btn.addEventListener("click", () => withdrawApplication(a.id, club.name, btn, loadMyApplications));
+    list.appendChild(row);
+  });
+}
+
+async function withdrawApplication(applicationId, clubName, btn, after) {
+  const ok = await confirmDialog(`Withdraw your application to ${clubName}?`, { title: "Withdraw application", confirmText: "Withdraw", danger: true });
+  if (!ok) return;
+  await withBusy(btn, "…", async () => {
+    const { error } = await supabaseClient.rpc("withdraw_application", { p_application: applicationId });
+    if (error) return showToast(friendlyError(error), "error");
+    showToast("Application withdrawn.", "success");
+    if (after) after();
+  });
+}
+
+// ---------- change password ----------
+
+$("form-change-password").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errorEl = $("cp-error");
+  errorEl.textContent = "";
+  const current = $("cp-current").value;
+  const next = $("cp-new").value;
+  const confirmValue = $("cp-confirm").value;
+  if (!current) { errorEl.textContent = "Enter your current password."; return; }
+  const problem = validatePassword(next);
+  if (problem) { errorEl.textContent = problem; return; }
+  if (next !== confirmValue) { errorEl.textContent = "New passwords do not match."; return; }
+  if (next === current) { errorEl.textContent = "The new password must be different from the current one."; return; }
+
+  await withBusy($("cp-submit-btn"), "Updating…", async () => {
+    // re-check the current password before allowing the change
+    const { error: checkErr } = await supabaseClient.auth.signInWithPassword({ email: currentUser.email, password: current });
+    if (checkErr) {
+      errorEl.textContent = /rate|too many/i.test(checkErr.message) ? "Too many attempts. Please wait a minute." : "Your current password is incorrect.";
+      return;
+    }
+    const { error } = await supabaseClient.auth.updateUser({ password: next });
+    if (error) {
+      errorEl.textContent = friendlyError(error);
+      return;
+    }
+    await supabaseClient.auth.signOut({ scope: "others" });
+    e.target.reset();
+    showToast("Password changed. Other devices have been signed out.", "success");
+  });
+});
+
+// ---------- edit profile modal ----------
+
+const formEditProfile = $("form-edit-profile");
+const editProfileError = $("edit-profile-error");
+
+function openEditProfileModal(profile) {
+  editProfileError.textContent = "";
+  $("edit-profile-bio").value = profile.bio || "";
+  openModal("edit-profile-modal-overlay");
+}
+
+$("edit-profile-modal-close-btn").addEventListener("click", () => closeModalById("edit-profile-modal-overlay"));
+$("edit-profile-modal-cancel-btn").addEventListener("click", () => closeModalById("edit-profile-modal-overlay"));
+
+formEditProfile.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  editProfileError.textContent = "";
+  const bio = $("edit-profile-bio").value.trim();
+  if (bio.length > 1000) { editProfileError.textContent = "Bio must be at most 1000 characters."; return; }
+
+  await withBusy(formEditProfile.querySelector("button[type=submit]"), "Saving…", async () => {
+    const { error } = await supabaseClient.from("profiles").update({ bio }).eq("id", currentUser.id);
+    if (error) {
+      editProfileError.textContent = friendlyError(error);
+      return;
+    }
+    currentUser.profile.bio = bio;
+    closeModalById("edit-profile-modal-overlay");
+    showToast("Profile updated.", "success");
+    showStudentProfile(currentUser.id, true);
+  });
+});
+
+// ============================================================
+// CLUB DETAIL
+// ============================================================
+
+let currentClubDetail = null;   // { club, leaders, members, posts, achievements, ... }
+const detailTabs = document.querySelectorAll(".detail-tab[data-detail-tab]");
+const DETAIL_PANELS = ["overview", "members", "announcements", "upcoming", "history", "achievements"];
+
+$("detail-back-btn").addEventListener("click", goBack);
+
+function selectDetailTab(tab) {
+  if (!DETAIL_PANELS.includes(tab)) tab = "overview";
+  detailTabs.forEach(t => t.classList.toggle("active", t.dataset.detailTab === tab));
+  DETAIL_PANELS.forEach(p => $(`detail-panel-${p}`).classList.toggle("active", p === tab));
+}
+
+detailTabs.forEach(tab => {
+  tab.addEventListener("click", () => {
+    selectDetailTab(tab.dataset.detailTab);
+    if (currentClubDetail) history.replaceState(null, "", `#/club/${currentClubDetail.club.id}/${tab.dataset.detailTab}`);
+  });
+});
+
+async function showClubDetail(clubId, tab = "overview") {
+  selectDetailTab(tab);
+  const card = $("club-detail-card");
+  card.classList.add("is-loading");
+  $("detail-name").textContent = "Loading…";
+  ["detail-meta", "detail-leaders", "detail-description", "detail-recruitment", "detail-status", "detail-category"].forEach(id => { $(id).textContent = ""; });
+  $("detail-actions").innerHTML = "";
+  $("detail-admin-controls").hidden = true;
+  $("detail-facts").innerHTML = "";
+
+  const { data: club, error } = await supabaseClient.from("clubs").select("*").eq("id", clubId).maybeSingle();
+  if (error || !club) {
+    card.classList.remove("is-loading");
+    showNotFound("This club doesn't exist, or it isn't public yet.");
+    return;
+  }
+
+  const queries = [
+    supabaseClient
+      .from("club_leaders")
+      .select("id, user_id, position, started_at, profile:profiles!club_leaders_user_id_fkey(id, first_name, last_name)")
+      .eq("club_id", clubId)
+      .is("ended_at", null),
+    supabaseClient
+      .from("club_members")
+      .select("*, profile:profiles(id, first_name, last_name, graduation_year, class_section)")
+      .eq("club_id", clubId)
+      .eq("status", "approved")
+      .order("joined_at", { ascending: true }),
+    supabaseClient
+      .from("club_posts")
+      .select(POST_SELECT)
+      .eq("club_id", clubId)
+      .eq("status", "approved")
+      .order("published_at", { ascending: false }),
+    supabaseClient
+      .from("club_achievements")
+      .select("*")
+      .eq("club_id", clubId)
+      .eq("status", "approved")
+      .order("achieved_on", { ascending: false }),
+    supabaseClient
+      .from("questionnaires")
+      .select("id")
+      .eq("club_id", clubId)
+      .eq("status", "approved")
+      .maybeSingle(),
+    currentUser.isStudent
+      ? supabaseClient.from("applications").select("id, status").eq("club_id", clubId).eq("user_id", currentUser.id).eq("status", "pending").maybeSingle()
+      : Promise.resolve({ data: null }),
+  ];
+  const [leadersRes, membersRes, postsRes, achRes, formRes, appRes] = await Promise.all(queries);
+
+  if (parseRoute().params[0] !== clubId) return; // navigated away
+
+  const leaders = (leadersRes.data || []).sort((a, b) => (a.position === "leader" ? -1 : 1) - (b.position === "leader" ? -1 : 1));
+  const members = membersRes.data || [];
+  const posts = postsRes.data || [];
+  currentClubDetail = {
+    club,
+    leaders,
+    members,
+    posts,
+    achievements: achRes.data || [],
+    hasLiveForm: !!formRes.data,
+    myMembership: members.find(m => m.user_id === currentUser.id) || null,
+    myPendingApplication: appRes.data || null,
+  };
+
+  card.classList.remove("is-loading");
+  renderClubHeader(currentClubDetail);
+  renderClubOverview(currentClubDetail);
+  renderClubMembers(currentClubDetail);
+  renderClubPosts(currentClubDetail);
+  renderClubAchievements(currentClubDetail);
+  renderAdminControls(currentClubDetail);
+}
+
+function renderClubHeader(d) {
+  const { club, leaders, members } = d;
+  $("detail-banner").dataset.category = club.category;
+  $("detail-logo").innerHTML = clubLogoHtml(club);
+  $("detail-logo").classList.toggle("has-logo", !!club.logo_url);
+  $("detail-category").textContent = club.category;
+  $("detail-category").dataset.category = club.category;
+  $("detail-name").textContent = club.name;
+
+  $("detail-recruitment").innerHTML = club.status === "approved"
+    ? (club.recruitment_open ? '<span class="status-badge is-open">Recruiting</span>' : '<span class="status-badge is-closed">Recruitment closed</span>')
+    : "";
+  $("detail-status").innerHTML = club.status !== "approved" ? statusBadge(club.status) : "";
+
+  $("detail-meta").textContent = `Founded ${formatDateOnly(club.created_at)} · ${members.length} member${members.length === 1 ? "" : "s"}`;
+
+  const main = leaders.filter(l => l.position === "leader");
+  const co = leaders.filter(l => l.position === "co_leader");
+  const link = l => `<a href="#/student/${l.user_id}">${escapeHtml(fullName(l.profile))}</a>`;
+  $("detail-leaders").innerHTML = [
+    main.length ? `${icon("star")}Led by ${main.map(link).join(", ")}` : "",
+    co.length ? `Co-leader${co.length > 1 ? "s" : ""}: ${co.map(link).join(", ")}` : "",
+  ].filter(Boolean).join('<span class="dot-sep">·</span>') || '<span class="muted">No leader assigned yet</span>';
+
+  renderDetailActions(d);
+}
+
+function renderDetailActions(d) {
+  const { club, myMembership, myPendingApplication, hasLiveForm } = d;
+  const actions = $("detail-actions");
+  actions.innerHTML = "";
+  const add = html => actions.insertAdjacentHTML("beforeend", html);
+
+  if (isLeaderOf(club.id)) {
+    add(`<a class="btn btn-primary btn-sm btn-with-icon" href="#/lead/${club.id}">${icon("settings")}Manage club</a>`);
+    return;
+  }
+  if (currentUser.isAdmin) {
+    add(`<span class="pill pill-member">Administrator view</span>`);
+    return;
+  }
+  if (currentUser.isTeacher) {
+    add(`<span class="pill pill-muted" title="Teacher accounts can view clubs but not join them">${icon("eye")}View only</span>`);
+    return;
+  }
+  if (club.status !== "approved") return;
+
+  if (myMembership) {
+    if (myMembership.leave_requested_at) {
+      add(`<span class="pill pill-pending">Leave requested</span>`);
+      add(`<button class="btn btn-secondary btn-sm" id="cancel-leave-btn">Cancel request</button>`);
+      $("cancel-leave-btn").addEventListener("click", async (e) => {
+        await withBusy(e.currentTarget, "…", async () => {
+          const { error } = await supabaseClient.rpc("cancel_leave_request", { p_club: club.id });
+          if (error) return showToast(friendlyError(error), "error");
+          showToast("Leave request cancelled.", "success");
+          showClubDetail(club.id, currentDetailTab());
+        });
+      });
+    } else {
+      add(`<span class="pill pill-member">Member</span>`);
+      add(`<button class="btn btn-secondary btn-sm" id="leave-club-btn">Request to leave</button>`);
+      $("leave-club-btn").addEventListener("click", async (e) => {
+        const ok = await confirmDialog(`Ask the leaders of ${club.name} to end your membership? Your membership stays on your club history.`, { title: "Leave club", confirmText: "Send request", danger: true });
+        if (!ok) return;
+        await withBusy(e.currentTarget, "…", async () => {
+          const { error } = await supabaseClient.rpc("request_leave", { p_club: club.id });
+          if (error) return showToast(friendlyError(error), "error");
+          showToast("Leave request sent to the club leaders.", "success");
+          showClubDetail(club.id, currentDetailTab());
+        });
+      });
+    }
+    return;
+  }
+
+  if (myPendingApplication) {
+    add(`<span class="pill pill-pending">Application pending</span>`);
+    add(`<button class="btn btn-secondary btn-sm" id="withdraw-app-btn">Withdraw</button>`);
+    const btn = $("withdraw-app-btn");
+    btn.addEventListener("click", () => withdrawApplication(myPendingApplication.id, club.name, btn, () => showClubDetail(club.id, currentDetailTab())));
+    return;
+  }
+
+  if (club.recruitment_open && hasLiveForm) {
+    add(`<button class="btn btn-primary btn-sm btn-with-icon" id="apply-btn">${icon("arrowRight")}Apply to Join</button>`);
+    $("apply-btn").addEventListener("click", () => openApplyModal(club));
+  } else {
+    add(`<span class="pill pill-muted">Recruitment closed</span>`);
+  }
+}
+
+function currentDetailTab() {
+  const active = document.querySelector(".detail-tab[data-detail-tab].active");
+  return active ? active.dataset.detailTab : "overview";
+}
+
+function renderClubOverview(d) {
+  const { club, leaders, members, posts, achievements } = d;
+  $("detail-description").textContent = club.description;
+  const today = todayDateStr();
+  const upcoming = posts.filter(p => p.kind === "event" && p.event_date >= today).length;
+  const completed = posts.filter(p => p.kind === "event" && p.event_date < today).length;
+  const facts = [
+    ["Category", escapeHtml(club.category)],
+    ["Founded", escapeHtml(formatDateOnly(club.created_at))],
+    ["Members", String(members.length)],
+    ["Recruitment", club.recruitment_open ? "Open" : "Closed"],
+    ["Upcoming events", String(upcoming)],
+    ["Completed events", String(completed)],
+    ["Achievements", String(achievements.length)],
+    ["Leadership", leaders.length ? leaders.map(l => `${escapeHtml(fullName(l.profile))} <span class="muted">(${l.position === "leader" ? "Leader" : "Co-leader"})</span>`).join("<br>") : '<span class="muted">Not assigned</span>'],
+  ];
+  $("detail-facts").innerHTML = facts.map(([k, v]) => `<div class="fact"><span class="fact-label">${k}</span><span class="fact-value">${v}</span></div>`).join("");
+}
+
+function renderClubMembers(d) {
+  const { leaders, members } = d;
+  const positionByUser = {};
+  leaders.forEach(l => { positionByUser[l.user_id] = l.position; });
+  const order = m => positionByUser[m.user_id] === "leader" ? 0 : positionByUser[m.user_id] === "co_leader" ? 1 : 2;
+  const list = $("detail-members-list");
+  list.innerHTML = "";
+  $("detail-members-heading").textContent = `Current members (${members.length})`;
+  $("detail-members-empty").hidden = members.length !== 0;
+
+  members.slice().sort((a, b) => order(a) - order(b) || fullName(a.profile).localeCompare(fullName(b.profile))).forEach(m => {
+    const pos = positionByUser[m.user_id];
+    const row = document.createElement("a");
+    row.className = "member-row";
+    row.href = `#/student/${m.user_id}`;
+    row.innerHTML = `
+      <div class="member-row-name">
+        <span class="member-row-avatar">${escapeHtml(initials(m.profile))}</span>
+        <span>
+          ${escapeHtml(fullName(m.profile))}
+          <span class="member-row-sub">${escapeHtml(formatGradeLabel(m.profile.graduation_year, m.profile.class_section))}${m.profile.graduation_year ? " · " : ""}since ${formatShortDate(m.joined_at)}</span>
+        </span>
+      </div>
+      ${pos ? `<span class="member-owner-tag">${pos === "leader" ? "Leader" : "Co-leader"}</span>` : ""}
+    `;
+    list.appendChild(row);
+  });
+}
+
+function renderClubPosts(d) {
+  const { club, posts } = d;
+  const today = todayDateStr();
+  const withClub = posts.map(p => ({ ...p, club }));
+  const byId = {};
+  withClub.forEach(p => { byId[p.id] = p; });
+
+  // Announcements tab: club announcements, newest first
+  const announcements = withClub.filter(p => p.kind === "announcement");
+  const annList = $("detail-announcements-list");
+  annList.innerHTML = "";
+  announcements.forEach(p => annList.appendChild(renderClubPostCard(p, { showClub: false })));
+  $("detail-announcements-empty").hidden = announcements.length !== 0;
+
+  // Upcoming tab: events from today on, soonest first
+  const upcoming = withClub
+    .filter(p => p.kind === "event" && p.event_date >= today)
+    .sort((a, b) => `${a.event_date}${a.start_time || ""}`.localeCompare(`${b.event_date}${b.start_time || ""}`));
+  const upList = $("detail-upcoming-list");
+  upList.innerHTML = "";
+  upcoming.forEach(p => upList.appendChild(renderClubPostCard(p, { showClub: false })));
+  $("detail-upcoming-empty").hidden = upcoming.length !== 0;
+
+  // Event history: completed events (newest first), each with its results
+  const resultsByEvent = {};
+  withClub.filter(p => p.kind === "event_result").forEach(r => {
+    (resultsByEvent[r.parent_event_id] = resultsByEvent[r.parent_event_id] || []).push(r);
+  });
+  const completed = withClub.filter(p => p.kind === "event" && p.event_date < today).sort((a, b) => b.event_date.localeCompare(a.event_date));
+  const orphanResults = withClub.filter(p => p.kind === "event_result" && (!p.parent_event_id || !byId[p.parent_event_id]));
+
+  const hist = $("detail-history-list");
+  hist.innerHTML = "";
+  completed.forEach(ev => {
+    const results = (resultsByEvent[ev.id] || []).sort((a, b) => new Date(a.published_at) - new Date(b.published_at));
+    const el = document.createElement("article");
+    el.className = "history-event";
+    el.innerHTML = `
+      <div class="history-event-date">
+        <strong>${parseDateOnly(ev.event_date).getDate()}</strong>
+        <span>${parseDateOnly(ev.event_date).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}</span>
+      </div>
+      <div class="history-event-body">
+        <h4>${escapeHtml(ev.title)}</h4>
+        ${eventDetailsHtml(ev)}
+        ${ev.body ? `<p class="preserve-lines">${escapeHtml(ev.body)}</p>` : ""}
+        ${results.map(r => `
+          <div class="history-result">
+            <span class="history-result-label">${icon("check")}Results · posted ${formatShortDate(r.published_at)}</span>
+            ${r.title !== ev.title ? `<strong>${escapeHtml(r.title)}</strong>` : ""}
+            ${r.body ? `<p class="preserve-lines">${escapeHtml(r.body)}</p>` : ""}
+            ${photoGridHtml(r.photos)}
+          </div>`).join("")}
+        ${results.length === 0 && ev.cover_url ? `<img class="history-event-cover" src="${escapeHtml(ev.cover_url)}" alt="" loading="lazy">` : ""}
+      </div>`;
+    hist.appendChild(el);
+  });
+  orphanResults.forEach(r => hist.appendChild(renderClubPostCard(r, { showClub: false })));
+  $("detail-history-empty").hidden = completed.length + orphanResults.length !== 0;
+}
+
+function renderClubAchievements(d) {
+  const list = $("detail-achievements-list");
+  list.innerHTML = d.achievements.map(a => `
+    <article class="achievement-card">
+      ${a.image_url ? `<img src="${escapeHtml(a.image_url)}" alt="" loading="lazy">` : `<span class="achievement-icon">${icon("trophy")}</span>`}
+      <div>
+        <h4>${escapeHtml(a.title)}</h4>
+        <span class="achievement-date">${formatLongDate(a.achieved_on)}</span>
+        ${a.description ? `<p class="preserve-lines">${escapeHtml(a.description)}</p>` : ""}
+      </div>
+    </article>`).join("");
+  $("detail-achievements-empty").hidden = d.achievements.length !== 0;
+}
+
+// Administrators get moderation controls right on the club page.
+function renderAdminControls(d) {
+  const el = $("detail-admin-controls");
+  if (!currentUser.isAdmin) { el.hidden = true; return; }
+  const { club } = d;
+  el.hidden = false;
+  const managed = ["approved", "suspended", "archived"].includes(club.status);
+  el.innerHTML = `
+    <span class="admin-controls-label">${icon("shield")}Admin</span>
+    ${managed && club.status !== "approved" ? `<button class="btn btn-secondary btn-sm" data-admin-status="approved">Reactivate</button>` : ""}
+    ${club.status === "approved" ? `<button class="btn btn-secondary btn-sm" data-admin-status="suspended">Suspend</button>` : ""}
+    ${managed && club.status !== "archived" ? `<button class="btn btn-secondary btn-sm" data-admin-status="archived">Archive</button>` : ""}
+    <a class="btn btn-secondary btn-sm" href="/admin.html#clubs/${club.id}">Edit, leaders &amp; members</a>
+  `;
+  el.querySelectorAll("[data-admin-status]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const status = btn.dataset.adminStatus;
+      const verb = status === "approved" ? "Reactivate" : status === "suspended" ? "Suspend" : "Archive";
+      const ok = await confirmDialog(
+        status === "archived" ? `Archive ${club.name}? It will be hidden from the directory, recruitment closes, and all history is kept.`
+          : status === "suspended" ? `Suspend ${club.name}? It will be hidden from the directory and can't recruit or post until reactivated.`
+          : `Reactivate ${club.name}?`,
+        { title: `${verb} club`, confirmText: verb, danger: status !== "approved" });
+      if (!ok) return;
+      await withBusy(btn, "…", async () => {
+        const { error } = await supabaseClient.rpc("admin_set_club_status", { p_club: club.id, p_status: status });
+        if (error) return showToast(friendlyError(error), "error");
+        showToast(`Club ${status === "approved" ? "reactivated" : status}.`, "success");
+        showClubDetail(club.id, currentDetailTab());
+      });
+    });
+  });
+}
+
+// ============================================================
+// QUESTIONNAIRE RENDERING (apply modal + leader preview)
+// ============================================================
+
+// Renders an application form. `questions` are questionnaire_questions rows.
+function renderQuestionnaireForm(container, questionnaire, questions, prefix = "q") {
+  container.innerHTML = `
+    ${questionnaire.intro ? `<p class="form-intro preserve-lines">${escapeHtml(questionnaire.intro)}</p>` : ""}
+    ${questions.map((q, i) => {
+      const id = `${prefix}-${i}`;
+      const req = q.required ? '<span class="req" aria-hidden="true">*</span>' : '<span class="optional">(optional)</span>';
+      const help = q.help_text ? `<span class="field-hint">${escapeHtml(q.help_text)}</span>` : "";
+      let input;
+      if (q.type === "short_text") {
+        input = `<input type="text" id="${id}" maxlength="300" data-qid="${q.id}">`;
+      } else if (q.type === "long_text") {
+        input = `<textarea id="${id}" rows="4" maxlength="3000" data-qid="${q.id}"></textarea>`;
+      } else {
+        const type = q.type === "single_choice" ? "radio" : "checkbox";
+        input = `<div class="choice-list" role="${type === "radio" ? "radiogroup" : "group"}" data-qid="${q.id}">
+          ${(q.options || []).map((opt, j) => `
+            <label class="choice"><input type="${type}" name="${id}" value="${escapeHtml(opt)}" id="${id}-${j}"><span>${escapeHtml(opt)}</span></label>
+          `).join("")}
+        </div>`;
+      }
+      return `<div class="field q-field" data-q-index="${i}">
+        <label ${q.type.endsWith("text") ? `for="${id}"` : ""}>${i + 1}. ${escapeHtml(q.label)} ${req}</label>
+        ${help}
+        ${input}
+        <span class="field-error" aria-live="polite"></span>
+      </div>`;
+    }).join("")}
+  `;
+}
+
+// Returns { answers, valid } and marks missing required answers.
+function collectQuestionnaireAnswers(container, questions) {
+  let valid = true;
+  const answers = questions.map((q, i) => {
+    const field = container.querySelector(`[data-q-index="${i}"]`);
+    const errorEl = field.querySelector(".field-error");
+    errorEl.textContent = "";
+    let value;
+    if (q.type === "short_text" || q.type === "long_text") {
+      value = field.querySelector("[data-qid]").value.trim();
+      if (q.required && !value) { errorEl.textContent = "This question is required."; valid = false; }
+    } else if (q.type === "single_choice") {
+      const checked = field.querySelector("input:checked");
+      value = checked ? checked.value : "";
+      if (q.required && !value) { errorEl.textContent = "Please choose an option."; valid = false; }
+    } else {
+      value = [...field.querySelectorAll("input:checked")].map(c => c.value);
+      if (q.required && value.length === 0) { errorEl.textContent = "Please choose at least one option."; valid = false; }
+    }
+    return { question_id: q.id, value };
+  });
+  return { answers, valid };
+}
+
+// ---------- apply modal ----------
+
+let applyingClub = null;
+let applyingQuestions = [];
+
+async function openApplyModal(club) {
+  applyingClub = club;
+  $("apply-error").textContent = "";
+  $("apply-modal-title").textContent = `Apply to ${club.name}`;
+  const body = $("apply-form-body");
+  body.innerHTML = loadingHtml("Loading the application form…");
+  $("apply-submit-btn").disabled = true;
+  openModal("apply-modal-overlay");
+
+  const { data: form, error } = await supabaseClient
+    .from("questionnaires")
+    .select("*, questions:questionnaire_questions(*)")
+    .eq("club_id", club.id)
+    .eq("status", "approved")
+    .maybeSingle();
+  if (error || !form) {
+    body.innerHTML = errorStateHtml("This club's application form isn't available right now.");
+    return;
+  }
+  applyingQuestions = (form.questions || []).sort((a, b) => a.position - b.position);
+  renderQuestionnaireForm(body, form, applyingQuestions, "apply");
+  $("apply-submit-btn").disabled = false;
+}
+
+$("apply-modal-close-btn").addEventListener("click", () => closeModalById("apply-modal-overlay"));
+$("apply-modal-cancel-btn").addEventListener("click", () => closeModalById("apply-modal-overlay"));
+
+$("form-apply").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("apply-error").textContent = "";
+  const { answers, valid } = collectQuestionnaireAnswers($("apply-form-body"), applyingQuestions);
+  if (!valid) {
+    $("apply-error").textContent = "Please answer all required questions.";
+    return;
+  }
+  await withBusy($("apply-submit-btn"), "Sending…", async () => {
+    const { error } = await supabaseClient.rpc("submit_application", { p_club: applyingClub.id, p_answers: answers });
+    if (error) {
+      $("apply-error").textContent = friendlyError(error);
+      return;
+    }
+    closeModalById("apply-modal-overlay");
+    showToast("Application sent! You'll get a notification when the leaders decide.", "success");
+    refreshUnreadCount();
+    showClubDetail(applyingClub.id, currentDetailTab());
+  });
+});
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+let notificationTimer = null;
+
+function startNotificationPolling() {
+  stopNotificationPolling();
+  refreshUnreadCount();
+  notificationTimer = setInterval(() => {
+    if (document.visibilityState === "visible") refreshUnreadCount();
+  }, 60000);
+}
+
+function stopNotificationPolling() {
+  clearInterval(notificationTimer);
+  notificationTimer = null;
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && currentUser) refreshUnreadCount();
+});
+
+async function refreshUnreadCount() {
+  if (!currentUser) return;
+  const { count, error } = await supabaseClient
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", currentUser.id)
+    .is("read_at", null);
+  if (error) return;
+  document.querySelectorAll("[data-unread-badge]").forEach(b => {
+    b.hidden = !count;
+    b.textContent = count > 99 ? "99+" : String(count || "");
+  });
+  if (typeof refreshLeaderBadge === "function") refreshLeaderBadge();
+}
+
+async function renderNotifications() {
+  const list = $("notifications-list");
+  list.innerHTML = loadingHtml("Loading notifications…");
+  $("notifications-empty").hidden = true;
+  const { data, error } = await supabaseClient
+    .from("notifications")
+    .select("*")
+    .eq("user_id", currentUser.id)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) {
+    list.innerHTML = errorStateHtml("Couldn't load notifications.");
+    return;
+  }
+  list.innerHTML = "";
+  $("notifications-empty").hidden = data.length !== 0;
+  $("mark-all-read-btn").hidden = !data.some(n => !n.read_at);
+
+  data.forEach(n => {
+    const item = document.createElement("button");
+    item.className = "notification-item" + (n.read_at ? "" : " is-unread");
+    item.innerHTML = `
+      <span class="notification-dot" aria-hidden="true"></span>
+      <span class="notification-main">
+        <strong>${escapeHtml(n.title)}</strong>
+        <span>${escapeHtml(n.body)}</span>
+      </span>
+      <time datetime="${n.created_at}" title="${escapeHtml(formatDateTime(n.created_at))}">${timeAgo(n.created_at)}</time>`;
+    item.addEventListener("click", async () => {
+      if (!n.read_at) {
+        await supabaseClient.rpc("mark_notifications_read", { p_ids: [n.id] });
+        refreshUnreadCount();
+      }
+      if (n.link && n.link.startsWith("#/")) navigate(n.link);
+      else if (n.link && n.link.startsWith("/")) window.location.href = n.link;
+      else renderNotifications();
+    });
+    list.appendChild(item);
+  });
+}
+
+$("mark-all-read-btn").addEventListener("click", async (e) => {
+  await withBusy(e.currentTarget, "…", async () => {
+    const { error } = await supabaseClient.rpc("mark_notifications_read", { p_ids: null });
+    if (error) return showToast(friendlyError(error), "error");
+    refreshUnreadCount();
+    renderNotifications();
+  });
+});
+
+// ============================================================
+// BOOT
+// ============================================================
 
 (async function boot() {
-  const {
-    data: { session },
-  } = await supabaseClient.auth.getSession();
+  if (authLinkError) {
+    showAuthView();
+    showAuthPanel("forgot");
+    $("forgot-error").textContent = /expired|invalid/i.test(authLinkError)
+      ? "That link is invalid or has expired. Request a new one below."
+      : authLinkError;
+    history.replaceState(null, "", window.location.pathname);
+    return;
+  }
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+
+  if (recoveryMode && session) {
+    showAuthView();
+    showAuthPanel("reset");
+    return;
+  }
 
   if (!session) {
-    viewAuth.style.display = "flex";
-    viewApp.style.display = "none";
+    showAuthView();
     return;
   }
 

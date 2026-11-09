@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shine Zuun Bileg Clubs</title>
+<title>SHZB Community — Shine Zuun Bileg Clubs</title>
+<meta name="description" content="SHZB Community connects Shine Zuun Bileg students, teachers and school clubs.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -31,7 +32,7 @@
     </div>
 
     <!-- Register form -->
-    <form id="form-register" class="auth-form active">
+    <form id="form-register" class="auth-form active" novalidate>
       <div class="field">
         <label>I am a</label>
         <div class="account-type-toggle" id="account-type-toggle">
@@ -42,11 +43,11 @@
       <div class="form-row">
         <div class="field">
           <label for="reg-firstname">First name</label>
-          <input type="text" id="reg-firstname" placeholder="Enter your first name" required>
+          <input type="text" id="reg-firstname" placeholder="Enter your first name" maxlength="50" autocomplete="given-name" required>
         </div>
         <div class="field">
           <label for="reg-lastname">Last name</label>
-          <input type="text" id="reg-lastname" placeholder="Enter your last name" required>
+          <input type="text" id="reg-lastname" placeholder="Enter your last name" maxlength="50" autocomplete="family-name" required>
         </div>
       </div>
       <div class="form-row" id="reg-grade-row">
@@ -72,23 +73,23 @@
       </div>
       <div class="field">
         <label for="reg-email">School email</label>
-        <input type="email" id="reg-email" placeholder="you@shinezuunbileg.edu.mn" required>
+        <input type="email" id="reg-email" placeholder="you@shinezuunbileg.edu.mn" autocomplete="email" required>
       </div>
       <div class="field">
         <label for="reg-password">Password</label>
         <div class="password-field">
-          <input type="password" id="reg-password" minlength="6" placeholder="Enter your password" required>
+          <input type="password" id="reg-password" minlength="8" placeholder="At least 8 characters, with a number" autocomplete="new-password" required>
           <button type="button" class="password-toggle" data-toggle-password="reg-password" aria-label="Show password"></button>
         </div>
       </div>
       <div class="field">
         <label for="reg-password-confirm">Confirm password</label>
         <div class="password-field">
-          <input type="password" id="reg-password-confirm" minlength="6" placeholder="Confirm your password" required>
+          <input type="password" id="reg-password-confirm" minlength="8" placeholder="Confirm your password" autocomplete="new-password" required>
           <button type="button" class="password-toggle" data-toggle-password="reg-password-confirm" aria-label="Show password"></button>
         </div>
       </div>
-      <p class="form-error" id="register-error"></p>
+      <p class="form-error" id="register-error" role="alert"></p>
       <button type="submit" class="btn btn-primary btn-block btn-with-icon">
         Create account
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -96,19 +97,20 @@
     </form>
 
     <!-- Login form -->
-    <form id="form-login" class="auth-form">
+    <form id="form-login" class="auth-form" novalidate>
       <div class="field">
         <label for="login-email">School email</label>
-        <input type="email" id="login-email" placeholder="you@shinezuunbileg.edu.mn" required>
+        <input type="email" id="login-email" placeholder="you@shinezuunbileg.edu.mn" autocomplete="email" required>
       </div>
       <div class="field">
         <label for="login-password">Password</label>
         <div class="password-field">
-          <input type="password" id="login-password" placeholder="Enter your password" required>
+          <input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password" required>
           <button type="button" class="password-toggle" data-toggle-password="login-password" aria-label="Show password"></button>
         </div>
       </div>
-      <p class="form-error" id="login-error"></p>
+      <button type="button" class="btn-link forgot-link" id="forgot-password-btn">Forgot password?</button>
+      <p class="form-error" id="login-error" role="alert"></p>
       <button type="submit" class="btn btn-primary btn-block btn-with-icon">
         Log in
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
@@ -123,11 +125,59 @@
           <label for="verify-code">Verification code</label>
           <input type="text" id="verify-code" inputmode="numeric" pattern="[0-9]*" maxlength="10" autocomplete="one-time-code" required>
         </div>
-        <p class="form-error" id="verify-error"></p>
+        <p class="form-error" id="verify-error" role="alert"></p>
         <button type="submit" class="btn btn-primary btn-block">Verify</button>
       </form>
       <button type="button" class="btn btn-secondary btn-block" id="resend-code-btn">Resend code</button>
       <button type="button" class="btn-link" id="verify-back-btn">&larr; Back to login</button>
+    </div>
+
+    <!-- Forgot password panel -->
+    <div id="panel-forgot" class="auth-form">
+      <h2 class="auth-panel-title">Reset your password</h2>
+      <p class="verify-intro">Enter your school email. If an account exists, we'll email you a reset link and code.</p>
+      <form id="form-forgot" novalidate>
+        <div class="field">
+          <label for="forgot-email">School email</label>
+          <input type="email" id="forgot-email" placeholder="you@shinezuunbileg.edu.mn" autocomplete="email" required>
+        </div>
+        <p class="form-error" id="forgot-error" role="alert"></p>
+        <p class="form-success" id="forgot-success" role="status" hidden></p>
+        <button type="submit" class="btn btn-primary btn-block" id="forgot-submit-btn">Send reset instructions</button>
+      </form>
+      <form id="form-recovery-code" hidden>
+        <div class="field">
+          <label for="recovery-code">Reset code from the email</label>
+          <input type="text" id="recovery-code" inputmode="numeric" pattern="[0-9]*" maxlength="10" autocomplete="one-time-code" required>
+        </div>
+        <p class="form-error" id="recovery-code-error" role="alert"></p>
+        <button type="submit" class="btn btn-primary btn-block">Continue</button>
+        <p class="auth-hint">Or simply open the link in the email.</p>
+      </form>
+      <button type="button" class="btn-link" id="forgot-back-btn">&larr; Back to login</button>
+    </div>
+
+    <!-- Set new password panel (after following a reset link / code) -->
+    <div id="panel-reset" class="auth-form">
+      <h2 class="auth-panel-title">Choose a new password</h2>
+      <form id="form-reset-password" novalidate>
+        <div class="field">
+          <label for="reset-password">New password</label>
+          <div class="password-field">
+            <input type="password" id="reset-password" minlength="8" placeholder="At least 8 characters, with a number" autocomplete="new-password" required>
+            <button type="button" class="password-toggle" data-toggle-password="reset-password" aria-label="Show password"></button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="reset-password-confirm">Confirm new password</label>
+          <div class="password-field">
+            <input type="password" id="reset-password-confirm" minlength="8" placeholder="Confirm your new password" autocomplete="new-password" required>
+            <button type="button" class="password-toggle" data-toggle-password="reset-password-confirm" aria-label="Show password"></button>
+          </div>
+        </div>
+        <p class="form-error" id="reset-error" role="alert"></p>
+        <button type="submit" class="btn btn-primary btn-block" id="reset-submit-btn">Update password</button>
+      </form>
     </div>
   </div>
 </section>
@@ -141,43 +191,66 @@
     </button>
     <div class="logo-badge mobile-logo"><img src="crest.png" alt="Shine Zuun Bileg logo"></div>
     <span class="mobile-title">Shine Zuun Bileg</span>
+    <a class="mobile-bell" href="#/notifications" aria-label="Notifications">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+      <span class="nav-badge" data-unread-badge hidden></span>
+    </a>
   </div>
 
   <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
   <aside class="app-sidebar" id="app-sidebar">
-    <button class="sidebar-brand" id="brand-home-btn">
+    <a class="sidebar-brand" href="#/home">
       <div class="logo-badge sidebar-logo"><img src="crest.png" alt="Shine Zuun Bileg logo"></div>
       <span class="sidebar-brand-text">
         <span class="sidebar-brand-name">Shine Zuun Bileg</span>
         <span class="sidebar-brand-sub">Clubs</span>
       </span>
-    </button>
+    </a>
 
-    <nav class="sidebar-nav">
-      <button class="sidebar-nav-item active" data-nav="home" id="nav-home-btn">
+    <nav class="sidebar-nav" aria-label="Main">
+      <a class="sidebar-nav-item" data-nav="home" href="#/home">
         <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9v12h5v-6h4v6h5V9"/></svg>
         Home
-      </button>
-      <button class="sidebar-nav-item" data-nav="my-clubs" id="nav-my-clubs-btn">
-        <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg>
-        My Clubs
-      </button>
-      <button class="sidebar-nav-item" data-nav="announcements" id="nav-announcements-btn">
+      </a>
+      <a class="sidebar-nav-item" data-nav="announcements" href="#/announcements">
         <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4a1 1 0 0 0 1 1h3l7 4.5v-15L7 9H4a1 1 0 0 0-1 1z"/><path d="M18 9a4 4 0 0 1 0 6"/><path d="M8 15l1.5 5h2.5"/></svg>
         Announcements
-      </button>
-      <button class="sidebar-nav-item" data-nav="students" id="nav-students-btn">
+      </a>
+      <a class="sidebar-nav-item" data-nav="students" href="#/students">
         <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14a5 5 0 0 1 5 5"/></svg>
         Students
-      </button>
-      <button class="sidebar-nav-item" data-nav="profile" id="sidebar-profile-btn">
+      </a>
+      <a class="sidebar-nav-item" data-nav="my-clubs" href="#/my-clubs" id="nav-my-clubs" hidden>
+        <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg>
+        My Clubs
+      </a>
+      <a class="sidebar-nav-item" data-nav="profile" href="#/profile">
         <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3"/><path d="M6.5 18.5a6.5 6.5 0 0 1 11 0"/></svg>
         My Profile
-      </button>
+      </a>
+      <a class="sidebar-nav-item" data-nav="notifications" href="#/notifications">
+        <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+        Notifications
+        <span class="nav-badge" data-unread-badge hidden></span>
+      </a>
+
+      <div class="sidebar-nav-group" id="nav-manage-group" hidden>
+        <span class="sidebar-nav-label">Manage</span>
+        <a class="sidebar-nav-item" data-nav="lead" href="#/lead" id="nav-lead" hidden>
+          <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg>
+          Leader Dashboard
+          <span class="nav-badge" id="lead-badge" hidden></span>
+        </a>
+        <a class="sidebar-nav-item" href="/admin.html" id="nav-admin" hidden>
+          <svg class="sidebar-nav-icon icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8.4 7.5 9.5 4.3-1.1 7.5-4.9 7.5-9.5V6z"/></svg>
+          Admin Dashboard
+        </a>
+      </div>
     </nav>
 
     <div class="sidebar-footer">
+      <div class="sidebar-user" id="sidebar-user"></div>
       <button class="sidebar-logout-btn" id="logout-btn">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><path d="M15 16l4-4-4-4"/><path d="M19 12H9"/></svg>
         Log out
@@ -185,10 +258,10 @@
     </div>
   </aside>
 
-  <main class="app-main">
+  <main class="app-main" id="app-main">
 
-    <!-- Home / club list -->
-    <section id="view-club-list" class="view-panel active">
+    <!-- ========== Home ========== -->
+    <section id="view-home" class="view-panel">
       <div class="home-hero">
         <div class="home-hero-text">
           <p class="home-hero-kicker">Welcome to</p>
@@ -197,81 +270,110 @@
         </div>
         <div class="search-box home-search">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input type="search" id="club-search" placeholder="Search clubs..." aria-label="Search clubs">
+          <input type="search" id="club-search" placeholder="Search clubs, categories or leaders..." aria-label="Search clubs by name, category or leader">
         </div>
       </div>
 
       <div class="home-toolbar">
-        <div class="category-filters" id="category-filters">
-          <button class="category-filter-btn active" data-category-filter="All">All</button>
-          <button class="category-filter-btn" data-category-filter="Academic">Academic</button>
-          <button class="category-filter-btn" data-category-filter="Arts">Arts</button>
-          <button class="category-filter-btn" data-category-filter="Sports">Sports</button>
-          <button class="category-filter-btn" data-category-filter="Technology">Technology</button>
-          <button class="category-filter-btn" data-category-filter="Volunteer">Volunteer</button>
-          <button class="category-filter-btn" data-category-filter="Other">Other</button>
+        <div class="category-filters" id="category-filters" aria-label="Filter by category"></div>
+        <div class="home-toolbar-right">
+          <select class="filter-select" id="recruitment-filter" aria-label="Filter by recruitment status">
+            <option value="all">All clubs</option>
+            <option value="open">Recruiting now</option>
+            <option value="closed">Not recruiting</option>
+          </select>
+          <button id="create-club-btn" class="btn btn-accent btn-with-icon" title="Request a new club" hidden>
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Request a Club
+          </button>
         </div>
-        <button id="fab-create-club" class="btn btn-accent btn-with-icon" title="Create a new club">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-          Create a Club
-        </button>
       </div>
       <div id="club-grid" class="club-grid"></div>
       <div id="club-empty" class="empty-state" hidden>
-        <p>No clubs found. Be the first to create one!</p>
+        <p>No clubs match your search.</p>
+      </div>
+
+      <div class="home-columns">
+        <section class="home-section" aria-labelledby="leaderboard-heading">
+          <div class="home-section-head">
+            <h3 class="section-subheading" id="leaderboard-heading">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4"/><path d="M12 13v4M8.5 20.5h7M10 17h4v3.5h-4z"/></svg>
+              Most active clubs
+            </h3>
+            <div class="segmented" id="leaderboard-periods" role="tablist" aria-label="Leaderboard period">
+              <button class="segmented-btn" data-period="month" role="tab">Month</button>
+              <button class="segmented-btn" data-period="semester" role="tab">Semester</button>
+              <button class="segmented-btn" data-period="year" role="tab">Year</button>
+              <button class="segmented-btn active" data-period="all" role="tab">All time</button>
+            </div>
+          </div>
+          <div id="leaderboard" class="leaderboard"></div>
+          <p class="leaderboard-note">Ranked by approved activity: completed events (3 pts), announcements &amp; event updates (1 pt) and achievements (5 pts).</p>
+        </section>
+
+        <section class="home-section" aria-labelledby="upcoming-heading">
+          <div class="home-section-head">
+            <h3 class="section-subheading" id="upcoming-heading">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+              Upcoming events
+            </h3>
+            <a class="see-all-link" href="#/announcements/events">See all</a>
+          </div>
+          <div id="home-upcoming" class="upcoming-list"></div>
+        </section>
       </div>
 
       <div id="announcements-section" class="home-announcements" hidden>
-        <h3 class="section-subheading">Upcoming announcements</h3>
+        <h3 class="section-subheading">School announcements</h3>
         <div id="announcements-list" class="announcements-list compact"></div>
       </div>
     </section>
 
-    <!-- My Clubs -->
+    <!-- ========== My Clubs (students) ========== -->
     <section id="view-my-clubs" class="view-panel">
       <div class="panel-heading panel-heading-row">
         <div>
           <h2>My Clubs</h2>
-          <p class="panel-subtext">Clubs you've created or joined</p>
+          <p class="panel-subtext">Clubs you belong to, and the clubs you've asked to open.</p>
         </div>
         <button id="my-clubs-create-btn" class="btn btn-accent btn-with-icon">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-          Create a Club
+          Request a Club
         </button>
       </div>
       <div id="my-clubs-grid" class="club-grid"></div>
       <div id="my-clubs-empty" class="empty-state" hidden>
-        <p>You haven't joined or created any clubs yet.</p>
+        <p>You haven't joined any clubs yet. <a href="#/home">Browse clubs</a> to find one that's recruiting.</p>
+      </div>
+
+      <div id="my-requests-section" hidden>
+        <h3 class="section-subheading">My club requests</h3>
+        <div id="my-requests-list" class="request-list"></div>
       </div>
     </section>
 
-    <!-- Announcements page -->
+    <!-- ========== Announcements ========== -->
     <section id="view-announcements" class="view-panel">
       <div class="panel-heading">
         <h2>Announcements</h2>
-        <p class="panel-subtext">Stay updated with school-wide news and upcoming events.</p>
+        <p class="panel-subtext">School news, club announcements, upcoming events and event results.</p>
       </div>
 
       <div class="category-filters" id="announcement-filters">
-        <button class="category-filter-btn active" data-announcement-filter="all">All</button>
-        <button class="category-filter-btn" data-announcement-filter="upcoming">Upcoming</button>
-        <button class="category-filter-btn" data-announcement-filter="past">Past</button>
+        <button class="category-filter-btn active" data-feed-filter="all">All</button>
+        <button class="category-filter-btn" data-feed-filter="school">School</button>
+        <button class="category-filter-btn" data-feed-filter="club">Club announcements</button>
+        <button class="category-filter-btn" data-feed-filter="events">Upcoming events</button>
+        <button class="category-filter-btn" data-feed-filter="updates">Event updates</button>
+        <button class="category-filter-btn" data-feed-filter="past">Past events</button>
       </div>
 
-      <div id="announcements-upcoming-group">
-        <h3 class="section-subheading">Upcoming</h3>
-        <div id="announcements-page-upcoming" class="announcements-list"></div>
-        <p class="empty-state" id="announcements-page-upcoming-empty" hidden>No upcoming announcements.</p>
-      </div>
-
-      <div id="announcements-past-group">
-        <h3 class="section-subheading">Past</h3>
-        <div id="announcements-page-past" class="announcements-list"></div>
-        <p class="empty-state" id="announcements-page-past-empty" hidden>No past announcements.</p>
-      </div>
+      <div id="feed-list" class="feed-list"></div>
+      <p class="empty-state" id="feed-empty" hidden>Nothing to show here yet.</p>
+      <button class="btn btn-secondary load-more-btn" id="feed-more-btn" hidden>Show more</button>
     </section>
 
-    <!-- Students directory -->
+    <!-- ========== Students directory ========== -->
     <section id="view-students" class="view-panel">
       <div class="panel-heading">
         <h2>Students</h2>
@@ -283,20 +385,39 @@
           <button class="category-filter-btn" data-people-filter="student">Students</button>
           <button class="category-filter-btn" data-people-filter="teacher">Teachers</button>
         </div>
-        <div class="search-box">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input type="search" id="students-search" placeholder="Search by name..." aria-label="Search by name">
+        <div class="people-toolbar-right">
+          <select class="filter-select" id="students-grade" aria-label="Filter by grade">
+            <option value="">All grades</option>
+            <option value="7">Grade 7</option>
+            <option value="8">Grade 8</option>
+            <option value="9">Grade 9</option>
+            <option value="10">Grade 10</option>
+            <option value="11">Grade 11</option>
+            <option value="12">Grade 12</option>
+          </select>
+          <select class="filter-select" id="students-class" aria-label="Filter by class">
+            <option value="">All classes</option>
+            <option value="A">Class A</option>
+            <option value="B">Class B</option>
+            <option value="C">Class C</option>
+          </select>
+          <div class="search-box">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input type="search" id="students-search" placeholder="Search by name, e.g. 10B..." aria-label="Search by name, grade or class">
+          </div>
         </div>
       </div>
+      <p class="results-count" id="students-count"></p>
       <div id="students-grid" class="people-grid"></div>
       <p class="empty-state" id="students-empty" hidden>No one found.</p>
+      <button class="btn btn-secondary load-more-btn" id="students-more-btn" hidden>Show more</button>
     </section>
 
-    <!-- Student profile -->
+    <!-- ========== Student profile / My Profile ========== -->
     <section id="view-student-profile" class="view-panel">
       <button class="back-btn" id="student-profile-back-btn">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
-        <span id="student-profile-back-label">Back to students</span>
+        Back
       </button>
 
       <div class="profile-card profile-header">
@@ -316,75 +437,200 @@
         <p class="profile-bio" id="student-profile-bio"></p>
       </div>
 
-      <div class="profile-card">
+      <div id="student-profile-club-sections">
+        <div class="profile-card">
+          <h3 class="profile-card-title">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14a5 5 0 0 1 5 5"/></svg>
+            Current clubs
+          </h3>
+          <div id="student-profile-current" class="history-timeline"></div>
+          <p class="empty-state" id="student-profile-current-empty" hidden>Not a member of any club right now.</p>
+        </div>
+
+        <div class="profile-card">
+          <h3 class="profile-card-title">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            Previous clubs
+          </h3>
+          <div id="student-profile-history" class="history-timeline"></div>
+          <p class="empty-state" id="student-profile-history-empty" hidden>No previous club memberships.</p>
+        </div>
+
+        <div class="profile-card" id="student-profile-leadership-card" hidden>
+          <h3 class="profile-card-title">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg>
+            Leadership experience
+          </h3>
+          <div id="student-profile-leadership" class="leadership-list"></div>
+        </div>
+      </div>
+
+      <!-- own profile only -->
+      <div class="profile-card" id="my-applications-card" hidden>
+        <div class="profile-card-head">
+          <h3 class="profile-card-title">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>
+            My applications
+          </h3>
+          <div class="segmented" id="my-applications-filter">
+            <button class="segmented-btn active" data-app-filter="all">All</button>
+            <button class="segmented-btn" data-app-filter="pending">Pending</button>
+            <button class="segmented-btn" data-app-filter="accepted">Accepted</button>
+            <button class="segmented-btn" data-app-filter="rejected">Rejected</button>
+          </div>
+        </div>
+        <div id="my-applications-list" class="request-list"></div>
+        <p class="empty-state" id="my-applications-empty" hidden>No applications here.</p>
+      </div>
+
+      <div class="profile-card" id="my-account-card" hidden>
         <h3 class="profile-card-title">
-          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-          Club Participation History
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
+          Account &amp; security
         </h3>
-        <div id="student-profile-history" class="history-timeline"></div>
-        <p class="empty-state" id="student-profile-history-empty" hidden>No club history yet.</p>
+        <p class="account-email" id="my-account-email"></p>
+        <form id="form-change-password" class="change-password-form" novalidate>
+          <div class="field">
+            <label for="cp-current">Current password</label>
+            <input type="password" id="cp-current" autocomplete="current-password" required>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="cp-new">New password</label>
+              <input type="password" id="cp-new" minlength="8" autocomplete="new-password" placeholder="At least 8 characters, with a number" required>
+            </div>
+            <div class="field">
+              <label for="cp-confirm">Confirm new password</label>
+              <input type="password" id="cp-confirm" minlength="8" autocomplete="new-password" required>
+            </div>
+          </div>
+          <p class="form-error" id="cp-error" role="alert"></p>
+          <div class="form-actions-row">
+            <button type="submit" class="btn btn-primary btn-sm" id="cp-submit-btn">Change password</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="profile-logout-btn">Log out</button>
+          </div>
+        </form>
       </div>
     </section>
 
-    <!-- Club detail -->
+    <!-- ========== Club detail ========== -->
     <section id="view-club-detail" class="view-panel">
       <button class="back-btn" id="detail-back-btn">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
-        Back to clubs
+        Back
       </button>
 
-      <div class="club-detail-card">
+      <div class="club-detail-card" id="club-detail-card">
         <div class="club-banner" id="detail-banner">
           <div class="club-banner-logo" id="detail-logo"></div>
         </div>
 
         <div class="club-detail-titlebar">
           <div class="club-detail-titlebar-info">
-            <span class="club-badge" id="detail-category"></span>
+            <div class="club-detail-tags">
+              <span class="club-badge" id="detail-category"></span>
+              <span id="detail-recruitment"></span>
+              <span id="detail-status"></span>
+            </div>
             <h2 id="detail-name"></h2>
             <p class="club-detail-meta" id="detail-meta"></p>
+            <p class="club-detail-leaders" id="detail-leaders"></p>
           </div>
           <div class="club-detail-actions" id="detail-actions"></div>
         </div>
 
-        <div class="club-detail-tabs">
-          <button class="detail-tab active" data-detail-tab="overview">Overview</button>
-          <button class="detail-tab" data-detail-tab="members">Members</button>
-          <button class="detail-tab" data-detail-tab="events">Events</button>
-          <button class="detail-tab" data-detail-tab="manage" id="manage-tab-btn" hidden>Manage</button>
+        <div class="admin-controls" id="detail-admin-controls" hidden></div>
+
+        <div class="club-detail-tabs" role="tablist">
+          <button class="detail-tab active" data-detail-tab="overview" role="tab">Overview</button>
+          <button class="detail-tab" data-detail-tab="members" role="tab">Members</button>
+          <button class="detail-tab" data-detail-tab="announcements" role="tab">Announcements</button>
+          <button class="detail-tab" data-detail-tab="upcoming" role="tab">Upcoming Events</button>
+          <button class="detail-tab" data-detail-tab="history" role="tab">Event History</button>
+          <button class="detail-tab" data-detail-tab="achievements" role="tab">Achievements</button>
         </div>
 
         <div class="club-detail-panel active" id="detail-panel-overview">
           <h3>About</h3>
-          <p id="detail-description"></p>
-          <h3>Founded</h3>
-          <p id="detail-founded"></p>
+          <p id="detail-description" class="preserve-lines"></p>
+          <div class="overview-facts" id="detail-facts"></div>
         </div>
 
         <div class="club-detail-panel" id="detail-panel-members">
-          <h3>Members</h3>
+          <h3 id="detail-members-heading">Members</h3>
           <div id="detail-members-list" class="members-list"></div>
           <p class="empty-state" id="detail-members-empty" hidden>No members yet.</p>
         </div>
 
-        <div class="club-detail-panel" id="detail-panel-events">
-          <h3>Upcoming &amp; Past Events</h3>
-          <div id="detail-events-list" class="events-list"></div>
-          <p class="empty-state" id="detail-events-empty" hidden>No events yet.</p>
+        <div class="club-detail-panel" id="detail-panel-announcements">
+          <div id="detail-announcements-list" class="feed-list"></div>
+          <p class="empty-state" id="detail-announcements-empty" hidden>No announcements yet.</p>
         </div>
 
-        <div class="club-detail-panel" id="detail-panel-manage">
-          <h3>Club Info</h3>
-          <button class="btn btn-secondary btn-sm" id="manage-edit-club-btn">Edit Club Info</button>
-
-          <h3>Pending Requests</h3>
-          <div id="manage-requests-list" class="members-list"></div>
-          <p class="empty-state" id="manage-requests-empty" hidden>No pending requests.</p>
-
-          <h3>Manage Events</h3>
-          <button class="btn btn-secondary btn-sm" id="manage-add-event-btn">+ Add Event</button>
-          <div id="manage-events-list" class="events-list"></div>
+        <div class="club-detail-panel" id="detail-panel-upcoming">
+          <div id="detail-upcoming-list" class="feed-list"></div>
+          <p class="empty-state" id="detail-upcoming-empty" hidden>No upcoming events.</p>
         </div>
+
+        <div class="club-detail-panel" id="detail-panel-history">
+          <div id="detail-history-list" class="event-history"></div>
+          <p class="empty-state" id="detail-history-empty" hidden>No completed events yet.</p>
+        </div>
+
+        <div class="club-detail-panel" id="detail-panel-achievements">
+          <div id="detail-achievements-list" class="achievement-list"></div>
+          <p class="empty-state" id="detail-achievements-empty" hidden>No achievements yet.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== Leader dashboard ========== -->
+    <section id="view-lead" class="view-panel">
+      <div class="panel-heading panel-heading-row">
+        <div>
+          <h2>Leader Dashboard</h2>
+          <p class="panel-subtext">Manage your club, recruitment and posts. Public content is published after an administrator approves it.</p>
+        </div>
+        <div class="lead-club-picker">
+          <label for="lead-club-select" class="sr-only">Club</label>
+          <select class="filter-select" id="lead-club-select"></select>
+          <a class="btn btn-secondary btn-sm" id="lead-view-club-link" href="#/home">View club page</a>
+        </div>
+      </div>
+
+      <div class="club-detail-card lead-card">
+        <div class="club-detail-tabs" role="tablist" id="lead-tabs">
+          <button class="detail-tab active" data-lead-tab="overview" role="tab">Overview</button>
+          <button class="detail-tab" data-lead-tab="applications" role="tab">Applications <span class="tab-count" id="lead-tab-apps-count"></span></button>
+          <button class="detail-tab" data-lead-tab="members" role="tab">Members <span class="tab-count" id="lead-tab-members-count"></span></button>
+          <button class="detail-tab" data-lead-tab="recruitment" role="tab">Recruitment</button>
+          <button class="detail-tab" data-lead-tab="posts" role="tab">Posts &amp; Events</button>
+          <button class="detail-tab" data-lead-tab="achievements" role="tab">Achievements</button>
+          <button class="detail-tab" data-lead-tab="profile" role="tab">Club Profile</button>
+        </div>
+        <div class="club-detail-panel active" id="lead-panel"></div>
+      </div>
+    </section>
+
+    <!-- ========== Notifications ========== -->
+    <section id="view-notifications" class="view-panel">
+      <div class="panel-heading panel-heading-row">
+        <div>
+          <h2>Notifications</h2>
+          <p class="panel-subtext">Updates about your applications, clubs and submissions.</p>
+        </div>
+        <button class="btn btn-secondary btn-sm" id="mark-all-read-btn">Mark all as read</button>
+      </div>
+      <div id="notifications-list" class="notification-list"></div>
+      <p class="empty-state" id="notifications-empty" hidden>You're all caught up.</p>
+    </section>
+
+    <!-- ========== Not found ========== -->
+    <section id="view-not-found" class="view-panel">
+      <div class="empty-state big-empty">
+        <h2>Page not found</h2>
+        <p id="not-found-message">This page doesn't exist, or you don't have access to it.</p>
+        <a class="btn btn-primary" href="#/home">Go to Home</a>
       </div>
     </section>
 
@@ -394,87 +640,64 @@
 
 </div>
 
-<!-- ===================== CREATE CLUB MODAL ===================== -->
+<!-- ===================== CLUB REQUEST MODAL ===================== -->
 <div id="modal-overlay" class="modal-overlay">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-header">
-      <h2 id="modal-title">Create a new club</h2>
-      <button class="modal-close" id="modal-close-btn">&times;</button>
+      <h2 id="modal-title">Request a new club</h2>
+      <button class="modal-close" id="modal-close-btn" aria-label="Close">&times;</button>
     </div>
-    <form id="form-create-club">
+    <p class="modal-intro">An administrator reviews every request. Once approved, the club appears on the homepage and its leader gets the Leader Dashboard.</p>
+    <form id="form-create-club" novalidate>
       <div class="field">
         <label for="club-name">Club name</label>
-        <input type="text" id="club-name" required>
+        <input type="text" id="club-name" maxlength="80" required>
       </div>
       <div class="field">
         <label for="club-category">Category</label>
-        <select id="club-category">
-          <option>Academic</option>
-          <option>Arts</option>
-          <option>Sports</option>
-          <option>Technology</option>
-          <option>Volunteer</option>
-          <option>Other</option>
-        </select>
+        <select id="club-category"></select>
       </div>
       <div class="field">
         <label for="club-description">Description</label>
-        <textarea id="club-description" rows="4" required></textarea>
+        <textarea id="club-description" rows="4" maxlength="2000" placeholder="What will the club do? Who is it for?" required></textarea>
       </div>
-      <p class="form-error" id="create-club-error"></p>
+      <div class="field">
+        <label for="club-leader">Proposed leader</label>
+        <select id="club-leader"></select>
+      </div>
+      <div class="field">
+        <label>Logo (optional)</label>
+        <div class="image-picker">
+          <div class="image-picker-preview" id="club-logo-preview"></div>
+          <div class="image-picker-actions">
+            <label class="btn btn-secondary btn-sm file-btn">Choose image<input type="file" id="club-logo-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden></label>
+            <button type="button" class="btn-link inline-link" id="club-logo-remove" hidden>Remove</button>
+            <span class="field-hint">PNG, JPG, WEBP or GIF, up to 5 MB.</span>
+          </div>
+        </div>
+      </div>
+      <p class="form-error" id="create-club-error" role="alert"></p>
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" id="modal-cancel-btn">Cancel</button>
-        <button type="submit" class="btn btn-primary" id="modal-submit-btn">Create club</button>
+        <button type="submit" class="btn btn-primary" id="modal-submit-btn">Submit request</button>
       </div>
     </form>
   </div>
 </div>
 
-<!-- ===================== EVENT MODAL ===================== -->
-<div id="event-modal-overlay" class="modal-overlay">
-  <div class="modal">
-    <div class="modal-header">
-      <h2 id="event-modal-title">Add an event</h2>
-      <button class="modal-close" id="event-modal-close-btn">&times;</button>
-    </div>
-    <form id="form-event">
-      <div class="field">
-        <label for="event-title">Event title</label>
-        <input type="text" id="event-title" required>
-      </div>
-      <div class="field">
-        <label for="event-date">Date &amp; time</label>
-        <input type="datetime-local" id="event-date" required>
-      </div>
-      <div class="field">
-        <label for="event-description">Description</label>
-        <textarea id="event-description" rows="3"></textarea>
-      </div>
-      <p class="form-error" id="event-error"></p>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-secondary" id="event-modal-cancel-btn">Cancel</button>
-        <button type="submit" class="btn btn-primary" id="event-modal-submit-btn">Add event</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- ===================== APPLY TO CLUB MODAL ===================== -->
+<!-- ===================== APPLY (QUESTIONNAIRE) MODAL ===================== -->
 <div id="apply-modal-overlay" class="modal-overlay">
-  <div class="modal">
+  <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="apply-modal-title">
     <div class="modal-header">
-      <h2>Apply to join</h2>
-      <button class="modal-close" id="apply-modal-close-btn">&times;</button>
+      <h2 id="apply-modal-title">Apply to join</h2>
+      <button class="modal-close" id="apply-modal-close-btn" aria-label="Close">&times;</button>
     </div>
-    <form id="form-apply">
-      <div class="field">
-        <label for="apply-message">Anything you'd like to say to the club owner? (optional)</label>
-        <textarea id="apply-message" rows="3"></textarea>
-      </div>
-      <p class="form-error" id="apply-error"></p>
+    <form id="form-apply" novalidate>
+      <div id="apply-form-body"></div>
+      <p class="form-error" id="apply-error" role="alert"></p>
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" id="apply-modal-cancel-btn">Cancel</button>
-        <button type="submit" class="btn btn-primary">Send application</button>
+        <button type="submit" class="btn btn-primary" id="apply-submit-btn">Send application</button>
       </div>
     </form>
   </div>
@@ -482,17 +705,18 @@
 
 <!-- ===================== EDIT PROFILE MODAL ===================== -->
 <div id="edit-profile-modal-overlay" class="modal-overlay">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-profile-title">
     <div class="modal-header">
-      <h2>Edit your profile</h2>
-      <button class="modal-close" id="edit-profile-modal-close-btn">&times;</button>
+      <h2 id="edit-profile-title">Edit your profile</h2>
+      <button class="modal-close" id="edit-profile-modal-close-btn" aria-label="Close">&times;</button>
     </div>
     <form id="form-edit-profile">
       <div class="field">
         <label for="edit-profile-bio">Bio</label>
-        <textarea id="edit-profile-bio" rows="4" placeholder="Tell others about your interests and skills..."></textarea>
+        <textarea id="edit-profile-bio" rows="4" maxlength="1000" placeholder="Tell others about your interests and skills..."></textarea>
+        <span class="field-hint">Your name, grade and class are managed by the school. Ask an administrator if they're wrong.</span>
       </div>
-      <p class="form-error" id="edit-profile-error"></p>
+      <p class="form-error" id="edit-profile-error" role="alert"></p>
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" id="edit-profile-modal-cancel-btn">Cancel</button>
         <button type="submit" class="btn btn-primary">Save profile</button>
@@ -501,8 +725,148 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- ===================== LEADER: POST MODAL ===================== -->
+<div id="post-modal-overlay" class="modal-overlay">
+  <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="post-modal-title">
+    <div class="modal-header">
+      <h2 id="post-modal-title">New post</h2>
+      <button class="modal-close" data-close-modal="post-modal-overlay" aria-label="Close">&times;</button>
+    </div>
+    <form id="form-post" novalidate>
+      <div class="field" id="post-kind-field">
+        <label>Type</label>
+        <div class="account-type-toggle kind-toggle" id="post-kind-toggle">
+          <button type="button" class="account-type-btn active" data-post-kind="event">Event announcement</button>
+          <button type="button" class="account-type-btn" data-post-kind="event_result">Event results</button>
+          <button type="button" class="account-type-btn" data-post-kind="announcement">Club announcement</button>
+        </div>
+      </div>
+      <div class="field" data-post-only="event_result">
+        <label for="post-parent">Which event?</label>
+        <select id="post-parent"></select>
+        <span class="field-hint">Only this club's approved events that have already taken place.</span>
+      </div>
+      <div class="field">
+        <label for="post-title">Title</label>
+        <input type="text" id="post-title" maxlength="150" required>
+      </div>
+      <div class="field">
+        <label for="post-body">Description</label>
+        <textarea id="post-body" rows="5" maxlength="5000"></textarea>
+      </div>
+      <div class="form-row" data-post-only="event">
+        <div class="field">
+          <label for="post-date">Event date</label>
+          <input type="date" id="post-date">
+        </div>
+        <div class="field">
+          <label for="post-start">Start time (optional)</label>
+          <input type="time" id="post-start">
+        </div>
+        <div class="field">
+          <label for="post-end">End time (optional)</label>
+          <input type="time" id="post-end">
+        </div>
+      </div>
+      <div class="field" data-post-only="event">
+        <label for="post-location">Location</label>
+        <input type="text" id="post-location" maxlength="200" placeholder="e.g. Assembly hall">
+      </div>
+      <div class="field" data-post-only="event announcement">
+        <label id="post-cover-label">Poster (optional)</label>
+        <div class="image-picker">
+          <div class="image-picker-preview" id="post-cover-preview"></div>
+          <div class="image-picker-actions">
+            <label class="btn btn-secondary btn-sm file-btn">Choose image<input type="file" id="post-cover-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden></label>
+            <button type="button" class="btn-link inline-link" id="post-cover-remove" hidden>Remove</button>
+            <span class="field-hint">One image, up to 5 MB.</span>
+          </div>
+        </div>
+      </div>
+      <div class="field" data-post-only="event_result">
+        <label>Photos (1–3)</label>
+        <div class="photo-picker" id="post-photos"></div>
+        <label class="btn btn-secondary btn-sm file-btn" id="post-photos-add">Add photos<input type="file" id="post-photos-input" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden></label>
+      </div>
+      <p class="modal-note">Your post will be sent to an administrator for approval before it becomes public.</p>
+      <p class="form-error" id="post-error" role="alert"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close-modal="post-modal-overlay">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="post-submit-btn">Submit for approval</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== LEADER: ACHIEVEMENT MODAL ===================== -->
+<div id="achievement-modal-overlay" class="modal-overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="achievement-modal-title">
+    <div class="modal-header">
+      <h2 id="achievement-modal-title">New achievement</h2>
+      <button class="modal-close" data-close-modal="achievement-modal-overlay" aria-label="Close">&times;</button>
+    </div>
+    <form id="form-achievement" novalidate>
+      <div class="field">
+        <label for="achievement-title">Title</label>
+        <input type="text" id="achievement-title" maxlength="150" placeholder="e.g. 1st place, City Robotics Olympiad" required>
+      </div>
+      <div class="field">
+        <label for="achievement-date">Date</label>
+        <input type="date" id="achievement-date" required>
+      </div>
+      <div class="field">
+        <label for="achievement-description">Description (optional)</label>
+        <textarea id="achievement-description" rows="3" maxlength="2000"></textarea>
+      </div>
+      <div class="field">
+        <label>Image (optional)</label>
+        <div class="image-picker">
+          <div class="image-picker-preview" id="achievement-image-preview"></div>
+          <div class="image-picker-actions">
+            <label class="btn btn-secondary btn-sm file-btn">Choose image<input type="file" id="achievement-image-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden></label>
+            <button type="button" class="btn-link inline-link" id="achievement-image-remove" hidden>Remove</button>
+          </div>
+        </div>
+      </div>
+      <p class="form-error" id="achievement-error" role="alert"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close-modal="achievement-modal-overlay">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="achievement-submit-btn">Submit for approval</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== LEADER: APPLICATION DETAIL MODAL ===================== -->
+<div id="application-modal-overlay" class="modal-overlay">
+  <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="application-modal-title">
+    <div class="modal-header">
+      <h2 id="application-modal-title">Application</h2>
+      <button class="modal-close" data-close-modal="application-modal-overlay" aria-label="Close">&times;</button>
+    </div>
+    <div id="application-modal-body"></div>
+  </div>
+</div>
+
+<!-- ===================== QUESTIONNAIRE PREVIEW MODAL ===================== -->
+<div id="preview-modal-overlay" class="modal-overlay">
+  <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="preview-modal-title">
+    <div class="modal-header">
+      <h2 id="preview-modal-title">Form preview</h2>
+      <button class="modal-close" data-close-modal="preview-modal-overlay" aria-label="Close">&times;</button>
+    </div>
+    <p class="modal-note">This is exactly what students will see. Answers here aren't saved.</p>
+    <div id="preview-modal-body"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" data-close-modal="preview-modal-overlay">Close preview</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <script src="supabase-config.js"></script>
+<script src="shared.js"></script>
 <script src="script.js"></script>
+<script src="leader.js"></script>
 </body>
 </html>

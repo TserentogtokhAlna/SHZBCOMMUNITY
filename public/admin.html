@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Dashboard - Shine Zuun Bileg Clubs</title>
+<title>Admin Dashboard - SHZB Community</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -19,132 +19,288 @@
 <div class="bg-glow admin-glow" aria-hidden="true"></div>
 
 <header class="app-header admin-header">
-  <div class="logo-badge header-logo admin-logo"><img src="logo.jpg" alt="Shine Zuun Bileg logo"></div>
-  <div class="header-title admin-header-title">Shine Zuun Bileg <span class="admin-tag">ADMIN</span></div>
+  <div class="logo-badge header-logo admin-logo"><img src="crest.png" alt="Shine Zuun Bileg logo"></div>
+  <div class="header-title admin-header-title">SHZB Community <span class="admin-tag">ADMIN</span></div>
+  <a class="header-link" href="/index.html#/home">View site</a>
   <div class="header-profile">
-    <button class="profile-avatar" id="profile-btn">A</button>
+    <button class="profile-avatar" id="profile-btn" aria-label="Account menu">A</button>
     <div class="profile-menu" id="profile-menu">
       <div class="profile-menu-name" id="profile-menu-name"></div>
       <div class="profile-menu-email" id="profile-menu-email"></div>
+      <a class="profile-menu-link" href="/index.html#/notifications">Notifications <span class="admin-count" id="admin-unread" hidden></span></a>
+      <a class="profile-menu-link" href="/index.html#/profile">Change password</a>
       <button class="profile-menu-logout" id="logout-btn">Log out</button>
     </div>
   </div>
 </header>
 
+<nav class="admin-nav" aria-label="Admin sections">
+  <a class="admin-nav-item" data-section="overview" href="#overview">Overview</a>
+  <a class="admin-nav-item" data-section="approvals" href="#approvals">Approval Center <span class="admin-count" id="nav-pending-count" hidden></span></a>
+  <a class="admin-nav-item" data-section="clubs" href="#clubs">Clubs</a>
+  <a class="admin-nav-item" data-section="users" href="#users">Users</a>
+  <a class="admin-nav-item" data-section="categories" href="#categories">Categories</a>
+  <a class="admin-nav-item" data-section="announcements" href="#announcements">Announcements</a>
+</nav>
+
 <main class="app-main admin-main">
 
-  <div class="admin-stats">
-    <div class="stat-card">
-      <div class="stat-value" id="stat-users">0</div>
-      <div class="stat-label">Registered students</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="stat-clubs">0</div>
-      <div class="stat-label">Clubs created</div>
-    </div>
-    <div class="stat-card stat-card-pending">
-      <div class="stat-value" id="stat-pending">0</div>
-      <div class="stat-label">Pending requests</div>
-    </div>
-  </div>
-
-  <section class="admin-section">
-    <div class="admin-section-header">
-      <h2>Announcements</h2>
-      <button class="btn btn-primary btn-sm" id="new-announcement-btn">+ New Announcement</button>
-    </div>
-    <input type="text" class="admin-search" id="announcements-search" placeholder="Search announcements...">
-    <div class="table-wrap">
-      <table class="admin-table" id="announcements-table">
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Event date</th>
-            <th>Posted</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="announcements-tbody"></tbody>
-      </table>
-      <p class="empty-state" id="announcements-empty" hidden>No announcements yet.</p>
-    </div>
+  <!-- ========== OVERVIEW ========== -->
+  <section class="admin-panel" id="section-overview">
+    <div class="admin-stats" id="admin-stats"></div>
+    <section class="admin-section">
+      <div class="admin-section-header">
+        <h2>Recently submitted requests</h2>
+        <a class="btn btn-secondary btn-sm" href="#approvals">Open Approval Center</a>
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Type</th><th>Club</th><th>Title</th><th>Submitted</th><th>Status</th><th></th></tr></thead>
+          <tbody id="recent-tbody"></tbody>
+        </table>
+        <p class="empty-state" id="recent-empty" hidden>No requests yet.</p>
+      </div>
+    </section>
   </section>
 
-  <section class="admin-section">
-    <h2>Pending Club Requests</h2>
-    <input type="text" class="admin-search" id="pending-search" placeholder="Search pending requests...">
-    <div class="table-wrap">
-      <table class="admin-table" id="pending-table">
-        <thead>
-          <tr>
-            <th>Club</th>
-            <th>Category</th>
-            <th>Requested by</th>
-            <th>Requested</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="pending-tbody"></tbody>
-      </table>
-      <p class="empty-state" id="pending-empty" hidden>No pending requests. All caught up.</p>
-    </div>
+  <!-- ========== APPROVAL CENTER ========== -->
+  <section class="admin-panel" id="section-approvals">
+    <section class="admin-section">
+      <h2>Approval Center</h2>
+      <div class="admin-filters">
+        <select id="approvals-status" class="admin-select" aria-label="Status">
+          <option value="pending">Pending</option>
+          <option value="changes_requested">Changes requested</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+          <option value="all">All statuses</option>
+        </select>
+        <select id="approvals-kind" class="admin-select" aria-label="Request type">
+          <option value="all">All types</option>
+          <option value="club">New clubs</option>
+          <option value="club_change">Club profile changes</option>
+          <option value="questionnaire">Recruitment forms</option>
+          <option value="post:event">Event announcements</option>
+          <option value="post:event_result">Event results</option>
+          <option value="post:announcement">Club announcements</option>
+          <option value="achievement">Achievements</option>
+        </select>
+        <input type="search" class="admin-search" id="approvals-search" placeholder="Search by club, title or person...">
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Type</th><th>Club</th><th>Title</th><th>Submitted by</th><th>Submitted</th><th>Status</th><th></th></tr></thead>
+          <tbody id="approvals-tbody"></tbody>
+        </table>
+        <p class="empty-state" id="approvals-empty" hidden>Nothing here. All caught up.</p>
+      </div>
+    </section>
   </section>
 
-  <section class="admin-section">
-    <h2>All Clubs</h2>
-    <input type="text" class="admin-search" id="clubs-search" placeholder="Search clubs by name, category, or creator...">
-    <div class="table-wrap">
-      <table class="admin-table" id="clubs-table">
-        <thead>
-          <tr>
-            <th>Club</th>
-            <th>Category</th>
-            <th>Created by</th>
-            <th>Created</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="clubs-tbody"></tbody>
-      </table>
-      <p class="empty-state" id="clubs-empty" hidden>No clubs yet.</p>
-    </div>
+  <!-- ========== CLUBS ========== -->
+  <section class="admin-panel" id="section-clubs">
+    <section class="admin-section">
+      <h2>Clubs</h2>
+      <div class="admin-filters">
+        <select id="clubs-status" class="admin-select" aria-label="Club status">
+          <option value="active">Active</option>
+          <option value="suspended">Suspended</option>
+          <option value="archived">Archived</option>
+          <option value="requests">Requests (pending / changes / rejected)</option>
+          <option value="all">All</option>
+        </select>
+        <input type="search" class="admin-search" id="clubs-search" placeholder="Search clubs by name, category or leader...">
+      </div>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Club</th><th>Category</th><th>Leader</th><th>Members</th><th>Recruiting</th><th>Status</th><th>Created</th><th></th></tr></thead>
+          <tbody id="clubs-tbody"></tbody>
+        </table>
+        <p class="empty-state" id="clubs-empty" hidden>No clubs match.</p>
+      </div>
+    </section>
   </section>
 
-  <section class="admin-section">
-    <h2>All Accounts</h2>
-    <input type="text" class="admin-search" id="users-search" placeholder="Search accounts by name or email...">
-    <div class="table-wrap">
-      <table class="admin-table" id="users-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Type</th>
-            <th>Role</th>
-            <th>Clubs</th>
-            <th>Joined</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="users-tbody"></tbody>
-      </table>
-      <p class="empty-state" id="users-empty" hidden>No accounts yet.</p>
-    </div>
+  <!-- ========== USERS ========== -->
+  <section class="admin-panel" id="section-users">
+    <section class="admin-section">
+      <h2>Users</h2>
+      <div class="admin-filters">
+        <select id="users-type" class="admin-select" aria-label="Account type">
+          <option value="all">All types</option>
+          <option value="student">Students</option>
+          <option value="teacher">Teachers</option>
+          <option value="leader">Club leaders</option>
+          <option value="admin">Administrators</option>
+        </select>
+        <select id="users-status" class="admin-select" aria-label="Account status">
+          <option value="all">Any status</option>
+          <option value="active">Active</option>
+          <option value="suspended">Suspended</option>
+        </select>
+        <input type="search" class="admin-search" id="users-search" placeholder="Search by name, email or grade (e.g. 10B)...">
+      </div>
+      <p class="results-count" id="users-count"></p>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Grade</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr></thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+        <p class="empty-state" id="users-empty" hidden>No accounts match.</p>
+      </div>
+      <button class="btn btn-secondary load-more-btn" id="users-more-btn" hidden>Show more</button>
+    </section>
+  </section>
+
+  <!-- ========== CATEGORIES ========== -->
+  <section class="admin-panel" id="section-categories">
+    <section class="admin-section">
+      <div class="admin-section-header">
+        <h2>Club categories</h2>
+      </div>
+      <form class="admin-inline-form" id="form-category" novalidate>
+        <input type="text" class="admin-search" id="category-name" maxlength="40" placeholder="New category name">
+        <button type="submit" class="btn btn-primary btn-sm">Add category</button>
+      </form>
+      <p class="form-error" id="category-error"></p>
+      <div class="table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Name</th><th>Clubs</th><th>Order</th><th></th></tr></thead>
+          <tbody id="categories-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
+  <!-- ========== ANNOUNCEMENTS ========== -->
+  <section class="admin-panel" id="section-announcements">
+    <section class="admin-section">
+      <div class="admin-section-header">
+        <h2>School-wide announcements</h2>
+        <button class="btn btn-primary btn-sm" id="new-announcement-btn">+ New Announcement</button>
+      </div>
+      <input type="search" class="admin-search" id="announcements-search" placeholder="Search announcements...">
+      <div class="table-wrap">
+        <table class="admin-table" id="announcements-table">
+          <thead><tr><th>Title</th><th>Event date</th><th>Posted</th><th></th></tr></thead>
+          <tbody id="announcements-tbody"></tbody>
+        </table>
+        <p class="empty-state" id="announcements-empty" hidden>No announcements yet.</p>
+      </div>
+    </section>
   </section>
 
 </main>
 
+<!-- ===================== REVIEW MODAL ===================== -->
+<div id="review-modal-overlay" class="modal-overlay">
+  <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
+    <div class="modal-header">
+      <h2 id="review-modal-title">Review request</h2>
+      <button class="modal-close" data-close-modal="review-modal-overlay" aria-label="Close">&times;</button>
+    </div>
+    <div id="review-modal-meta" class="review-meta"></div>
+    <div id="review-modal-preview" class="review-preview"></div>
+    <div id="review-modal-decision">
+      <div class="field">
+        <label for="review-note">Note to the submitter <span class="optional">(required to reject or request changes)</span></label>
+        <textarea id="review-note" rows="3" maxlength="2000" placeholder="What should they change, or why was it rejected?"></textarea>
+      </div>
+      <p class="form-error" id="review-error" role="alert"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close-modal="review-modal-overlay">Cancel</button>
+        <button type="button" class="btn btn-danger-solid" data-decision="rejected">Reject</button>
+        <button type="button" class="btn btn-secondary" data-decision="changes_requested">Request changes</button>
+        <button type="button" class="btn btn-primary" data-decision="approved">Approve</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CLUB MANAGE MODAL ===================== -->
+<div id="club-modal-overlay" class="modal-overlay">
+  <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="club-modal-title">
+    <div class="modal-header">
+      <h2 id="club-modal-title">Manage club</h2>
+      <button class="modal-close" data-close-modal="club-modal-overlay" aria-label="Close">&times;</button>
+    </div>
+    <div id="club-modal-body"></div>
+  </div>
+</div>
+
+<!-- ===================== USER EDIT MODAL ===================== -->
+<div id="user-modal-overlay" class="modal-overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="user-modal-title">
+    <div class="modal-header">
+      <h2 id="user-modal-title">Edit account</h2>
+      <button class="modal-close" data-close-modal="user-modal-overlay" aria-label="Close">&times;</button>
+    </div>
+    <form id="form-user" novalidate>
+      <div class="form-row">
+        <div class="field">
+          <label for="user-first">First name</label>
+          <input type="text" id="user-first" maxlength="50" required>
+        </div>
+        <div class="field">
+          <label for="user-last">Last name</label>
+          <input type="text" id="user-last" maxlength="50" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label for="user-type">Account type</label>
+          <select id="user-type">
+            <option value="student">Student</option>
+            <option value="teacher">Teacher</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="user-role">Permissions</label>
+          <select id="user-role">
+            <option value="student">Standard</option>
+            <option value="admin">Administrator</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row" id="user-grade-row">
+        <div class="field">
+          <label for="user-grade">Grade</label>
+          <select id="user-grade">
+            <option value="">—</option>
+            <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+            <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+            <option value="grad">Graduated</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="user-class">Class</label>
+          <select id="user-class">
+            <option value="">—</option>
+            <option value="A">A</option><option value="B">B</option><option value="C">C</option>
+          </select>
+        </div>
+      </div>
+      <div id="user-leadership" class="user-leadership"></div>
+      <p class="form-error" id="user-error" role="alert"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close-modal="user-modal-overlay">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="user-save-btn">Save changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- ===================== ANNOUNCEMENT MODAL ===================== -->
 <div id="announcement-modal-overlay" class="modal-overlay">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="announcement-modal-heading">
     <div class="modal-header">
-      <h2>New announcement</h2>
-      <button class="modal-close" id="announcement-modal-close-btn">&times;</button>
+      <h2 id="announcement-modal-heading">New announcement</h2>
+      <button class="modal-close" id="announcement-modal-close-btn" aria-label="Close">&times;</button>
     </div>
-    <form id="form-announcement">
+    <form id="form-announcement" novalidate>
       <div class="field">
         <label for="announcement-title">Title</label>
-        <input type="text" id="announcement-title" required>
+        <input type="text" id="announcement-title" maxlength="150" required>
       </div>
       <div class="field">
         <label for="announcement-date">Event date &amp; time (optional)</label>
@@ -152,19 +308,32 @@
       </div>
       <div class="field">
         <label for="announcement-description">Description</label>
-        <textarea id="announcement-description" rows="3"></textarea>
+        <textarea id="announcement-description" rows="3" maxlength="5000"></textarea>
+      </div>
+      <div class="field">
+        <label>Image (optional)</label>
+        <div class="image-picker">
+          <div class="image-picker-preview" id="announcement-image-preview"></div>
+          <div class="image-picker-actions">
+            <label class="btn btn-secondary btn-sm file-btn">Choose image<input type="file" id="announcement-image-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden></label>
+            <button type="button" class="btn-link inline-link" id="announcement-image-remove" hidden>Remove</button>
+          </div>
+        </div>
       </div>
       <p class="form-error" id="announcement-error"></p>
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" id="announcement-modal-cancel-btn">Cancel</button>
-        <button type="submit" class="btn btn-primary">Post announcement</button>
+        <button type="submit" class="btn btn-primary" id="announcement-submit-btn">Post announcement</button>
       </div>
     </form>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
 <script src="supabase-config.js"></script>
+<script src="shared.js"></script>
 <script src="admin.js"></script>
 </body>
 </html>
