@@ -1627,10 +1627,38 @@ $("form-change-password").addEventListener("submit", async (e) => {
 const formEditProfile = $("form-edit-profile");
 const editProfileError = $("edit-profile-error");
 
+let editingProfile = null;
+
 function openEditProfileModal(profile) {
+  editingProfile = profile;
   editProfileError.textContent = "";
+  $("edit-profile-first").value = profile.first_name || "";
+  $("edit-profile-last").value = profile.last_name || "";
   $("edit-profile-bio").value = profile.bio || "";
+
+  // grade/class only apply to students
+  const isStudentProfile = profile.account_type === "student" && profile.role !== "admin";
+  $("edit-profile-grade-row").hidden = !isStudentProfile;
+  $("edit-profile-grade-hint").hidden = !isStudentProfile;
+  if (isStudentProfile) {
+    const grade = profile.graduation_year ? computeCurrentGrade(profile.graduation_year) : null;
+    $("edit-profile-grade").value = grade === null ? "7" : grade > 12 ? "grad" : String(Math.max(7, grade));
+    $("edit-profile-class").value = profile.class_section || "A";
+  }
   openModal("edit-profile-modal-overlay");
+  $("edit-profile-first").focus();
+}
+
+// grade picked in the form -> stored graduation_year (unchanged if the grade is the same)
+function graduationYearFromForm(profile) {
+  const choice = $("edit-profile-grade").value;
+  const currentGrade = profile.graduation_year ? computeCurrentGrade(profile.graduation_year) : null;
+  if (choice === "grad") {
+    // already graduated: keep their real graduation year
+    return currentGrade !== null && currentGrade > 12 ? profile.graduation_year : getSchoolYear();
+  }
+  if (currentGrade !== null && String(currentGrade) === choice) return profile.graduation_year;
+  return computeGraduationYear(Number(choice));
 }
 
 $("edit-profile-modal-close-btn").addEventListener("click", () => closeModalById("edit-profile-modal-overlay"));
@@ -1639,16 +1667,38 @@ $("edit-profile-modal-cancel-btn").addEventListener("click", () => closeModalByI
 formEditProfile.addEventListener("submit", async (e) => {
   e.preventDefault();
   editProfileError.textContent = "";
+  const firstName = $("edit-profile-first").value.trim();
+  const lastName = $("edit-profile-last").value.trim();
   const bio = $("edit-profile-bio").value.trim();
+  if (!firstName || !lastName) { editProfileError.textContent = "Please enter your first and last name."; return; }
   if (bio.length > 1000) { editProfileError.textContent = "Bio must be at most 1000 characters."; return; }
 
+  const profile = editingProfile || currentUser.profile;
+  const changes = { first_name: firstName, last_name: lastName, bio };
+  if (!$("edit-profile-grade-row").hidden) {
+    changes.graduation_year = graduationYearFromForm(profile);
+    changes.class_section = $("edit-profile-class").value;
+  }
+
   await withBusy(formEditProfile.querySelector("button[type=submit]"), "Saving…", async () => {
-    const { error } = await supabaseClient.from("profiles").update({ bio }).eq("id", currentUser.id);
+    const { data: saved, error } = await supabaseClient
+      .from("profiles")
+      .update(changes)
+      .eq("id", currentUser.id)
+      .select()
+      .single();
     if (error) {
       editProfileError.textContent = friendlyError(error);
       return;
     }
-    currentUser.profile.bio = bio;
+    currentUser.profile = saved;
+    applyRoleVisibility();
+    // before migration 008 the database silently keeps the old name/grade
+    if (saved.first_name !== firstName || saved.last_name !== lastName ||
+        ("graduation_year" in changes && saved.graduation_year !== changes.graduation_year)) {
+      editProfileError.textContent = "Only your bio was saved. An administrator needs to run migration 008 to allow name and grade changes.";
+      return;
+    }
     closeModalById("edit-profile-modal-overlay");
     showToast("Profile updated.", "success");
     showStudentProfile(currentUser.id, true);

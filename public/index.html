@@ -691,11 +691,43 @@
       <h2 id="edit-profile-title">Edit your profile</h2>
       <button class="modal-close" id="edit-profile-modal-close-btn" aria-label="Close">&times;</button>
     </div>
-    <form id="form-edit-profile">
+    <form id="form-edit-profile" novalidate>
+      <div class="form-row">
+        <div class="field">
+          <label for="edit-profile-first">First name</label>
+          <input type="text" id="edit-profile-first" maxlength="50" autocomplete="given-name" required>
+        </div>
+        <div class="field">
+          <label for="edit-profile-last">Last name</label>
+          <input type="text" id="edit-profile-last" maxlength="50" autocomplete="family-name" required>
+        </div>
+      </div>
+      <div class="form-row" id="edit-profile-grade-row">
+        <div class="field">
+          <label for="edit-profile-grade">Grade</label>
+          <select id="edit-profile-grade">
+            <option value="7">7th</option>
+            <option value="8">8th</option>
+            <option value="9">9th</option>
+            <option value="10">10th</option>
+            <option value="11">11th</option>
+            <option value="12">12th</option>
+            <option value="grad">Graduated</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="edit-profile-class">Class</label>
+          <select id="edit-profile-class">
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+          </select>
+        </div>
+      </div>
+      <p class="field-hint" id="edit-profile-grade-hint">Your grade goes up automatically every September 1, and shows "Graduated" after 12th grade. Only change it if it's wrong.</p>
       <div class="field">
         <label for="edit-profile-bio">Bio</label>
         <textarea id="edit-profile-bio" rows="4" maxlength="1000" placeholder="Tell others about your interests and skills..."></textarea>
-        <span class="field-hint">Your name, grade and class are managed by the school. Ask an administrator if they're wrong.</span>
       </div>
       <p class="form-error" id="edit-profile-error" role="alert"></p>
       <div class="modal-actions">
