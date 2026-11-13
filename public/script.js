@@ -1642,7 +1642,7 @@ function openEditProfileModal(profile) {
   $("edit-profile-grade-hint").hidden = !isStudentProfile;
   if (isStudentProfile) {
     const grade = profile.graduation_year ? computeCurrentGrade(profile.graduation_year) : null;
-    $("edit-profile-grade").value = grade === null ? "7" : grade > 12 ? "grad" : String(Math.max(7, grade));
+    $("edit-profile-grade").value = grade === null ? "6" : grade > 12 ? "grad" : String(Math.max(6, grade));
     $("edit-profile-class").value = profile.class_section || "A";
   }
   openModal("edit-profile-modal-overlay");

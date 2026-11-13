@@ -56,13 +56,13 @@ begin
     v_school_year := v_school_year - 1;
   end if;
 
-  -- grade 7 this year = graduates in v_school_year + 6; "graduated" = any
+  -- grade 6 this year = graduates in v_school_year + 7; "graduated" = any
   -- year up to v_school_year (kept within a sane range)
   -- (only checked when it changes, so an old account without a grade can
   -- still save its bio or name)
   if new.graduation_year is distinct from old.graduation_year and (
        new.graduation_year is null
-       or new.graduation_year > v_school_year + 6
+       or new.graduation_year > v_school_year + 7
        or new.graduation_year < v_school_year - 30) then
     raise exception 'Please choose a valid grade.';
   end if;
