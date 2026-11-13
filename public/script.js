@@ -561,7 +561,7 @@ async function route() {
     case "club":
       if (!params[0]) return showNotFound();
       showPanel("view-club-detail", "home");
-      showClubDetail(params[0], params[1] || "overview");
+      showClubDetail(params[0], params[1] || "history");
       break;
     case "lead":
       // leadership may have been granted since login (e.g. a club was just approved)
@@ -826,7 +826,7 @@ async function renderLeaderboard() {
       <span class="lb-main">
         <span class="lb-name">${escapeHtml(r.name)}</span>
         <span class="lb-bar"><span style="width:${Math.max(6, Math.round((r.score / top) * 100))}%"></span></span>
-        <span class="lb-breakdown">${r.events_count} event${r.events_count === 1 ? "" : "s"} · ${r.posts_count} update${r.posts_count === 1 ? "" : "s"} · ${r.achievements_count} achievement${r.achievements_count === 1 ? "" : "s"}</span>
+        <span class="lb-breakdown">${r.events_count} event${r.events_count === 1 ? "" : "s"} · ${r.posts_count} update${r.posts_count === 1 ? "" : "s"}</span>
       </span>
       <span class="lb-score"><strong>${r.score}</strong><span>pts</span></span>
     </a>
@@ -1142,7 +1142,7 @@ const FEED_PAGE = 20;
 const feedFilterButtons = document.querySelectorAll("[data-feed-filter]");
 
 function setFeedFilter(filter) {
-  feedFilter = ["all", "school", "club", "events", "updates", "past"].includes(filter) ? filter : "all";
+  feedFilter = ["all", "school", "events", "updates", "past"].includes(filter) ? filter : "all";
   feedFilterButtons.forEach(b => b.classList.toggle("active", b.dataset.feedFilter === feedFilter));
   feedShown = FEED_PAGE;
 }
@@ -1203,9 +1203,6 @@ function filteredFeed() {
     case "school":
       items = feedItems.filter(i => i.source === "school" && !i.isPast);
       break;
-    case "club":
-      items = feedItems.filter(i => i.source === "club" && i.kind === "announcement");
-      break;
     case "events":
       return feedItems.filter(i => i.kind === "event" && !i.isPast)
         .sort((a, b) => String(a.eventSort).localeCompare(String(b.eventSort)));
@@ -1238,7 +1235,7 @@ function renderFeed() {
 const POST_KIND_TAGS = {
   announcement: ["Club announcement", "is-news"],
   event: ["Upcoming event", "is-upcoming"],
-  event_result: ["Event update", "is-result"],
+  event_result: ["Event results", "is-result"],
 };
 
 function photoGridHtml(photos) {
@@ -1660,14 +1657,15 @@ formEditProfile.addEventListener("submit", async (e) => {
 // CLUB DETAIL
 // ============================================================
 
-let currentClubDetail = null;   // { club, leaders, members, posts, achievements, ... }
+let currentClubDetail = null;   // { club, leaders, members, posts, ... }
 const detailTabs = document.querySelectorAll(".detail-tab[data-detail-tab]");
-const DETAIL_PANELS = ["overview", "members", "announcements", "upcoming", "history", "achievements"];
+// Event History first (what the club has done), then what's coming, then who's in it
+const DETAIL_PANELS = ["history", "upcoming", "members"];
 
 $("detail-back-btn").addEventListener("click", goBack);
 
 function selectDetailTab(tab) {
-  if (!DETAIL_PANELS.includes(tab)) tab = "overview";
+  if (!DETAIL_PANELS.includes(tab)) tab = "history";
   detailTabs.forEach(t => t.classList.toggle("active", t.dataset.detailTab === tab));
   DETAIL_PANELS.forEach(p => $(`detail-panel-${p}`).classList.toggle("active", p === tab));
 }
@@ -1679,7 +1677,7 @@ detailTabs.forEach(tab => {
   });
 });
 
-async function showClubDetail(clubId, tab = "overview") {
+async function showClubDetail(clubId, tab = "history") {
   selectDetailTab(tab);
   const card = $("club-detail-card");
   card.classList.add("is-loading");
@@ -1687,7 +1685,6 @@ async function showClubDetail(clubId, tab = "overview") {
   ["detail-meta", "detail-leaders", "detail-description", "detail-recruitment", "detail-status", "detail-category"].forEach(id => { $(id).textContent = ""; });
   $("detail-actions").innerHTML = "";
   $("detail-admin-controls").hidden = true;
-  $("detail-facts").innerHTML = "";
 
   const { data: club, error } = await supabaseClient.from("clubs").select("*").eq("id", clubId).maybeSingle();
   if (error || !club) {
@@ -1715,12 +1712,6 @@ async function showClubDetail(clubId, tab = "overview") {
       .eq("status", "approved")
       .order("published_at", { ascending: false }),
     supabaseClient
-      .from("club_achievements")
-      .select("*")
-      .eq("club_id", clubId)
-      .eq("status", "approved")
-      .order("achieved_on", { ascending: false }),
-    supabaseClient
       .from("questionnaires")
       .select("id")
       .eq("club_id", clubId)
@@ -1730,7 +1721,7 @@ async function showClubDetail(clubId, tab = "overview") {
       ? supabaseClient.from("applications").select("id, status").eq("club_id", clubId).eq("user_id", currentUser.id).eq("status", "pending").maybeSingle()
       : Promise.resolve({ data: null }),
   ];
-  const [leadersRes, membersRes, postsRes, achRes, formRes, appRes] = await Promise.all(queries);
+  const [leadersRes, membersRes, postsRes, formRes, appRes] = await Promise.all(queries);
 
   if (parseRoute().params[0] !== clubId) return; // navigated away
 
@@ -1742,7 +1733,6 @@ async function showClubDetail(clubId, tab = "overview") {
     leaders,
     members,
     posts,
-    achievements: achRes.data || [],
     hasLiveForm: !!formRes.data,
     myMembership: members.find(m => m.user_id === currentUser.id) || null,
     myPendingApplication: appRes.data || null,
@@ -1750,10 +1740,8 @@ async function showClubDetail(clubId, tab = "overview") {
 
   card.classList.remove("is-loading");
   renderClubHeader(currentClubDetail);
-  renderClubOverview(currentClubDetail);
   renderClubMembers(currentClubDetail);
   renderClubPosts(currentClubDetail);
-  renderClubAchievements(currentClubDetail);
   renderAdminControls(currentClubDetail);
 }
 
@@ -1780,6 +1768,7 @@ function renderClubHeader(d) {
     main.length ? `${icon("star")}Led by ${main.map(link).join(", ")}` : "",
     co.length ? `Co-leader${co.length > 1 ? "s" : ""}: ${co.map(link).join(", ")}` : "",
   ].filter(Boolean).join('<span class="dot-sep">·</span>') || '<span class="muted">No leader assigned yet</span>';
+  $("detail-description").textContent = club.description;
 
   renderDetailActions(d);
 }
@@ -1851,26 +1840,7 @@ function renderDetailActions(d) {
 
 function currentDetailTab() {
   const active = document.querySelector(".detail-tab[data-detail-tab].active");
-  return active ? active.dataset.detailTab : "overview";
-}
-
-function renderClubOverview(d) {
-  const { club, leaders, members, posts, achievements } = d;
-  $("detail-description").textContent = club.description;
-  const today = todayDateStr();
-  const upcoming = posts.filter(p => p.kind === "event" && p.event_date >= today).length;
-  const completed = posts.filter(p => p.kind === "event" && p.event_date < today).length;
-  const facts = [
-    ["Category", escapeHtml(club.category)],
-    ["Founded", escapeHtml(formatDateOnly(club.created_at))],
-    ["Members", String(members.length)],
-    ["Recruitment", club.recruitment_open ? "Open" : "Closed"],
-    ["Upcoming events", String(upcoming)],
-    ["Completed events", String(completed)],
-    ["Achievements", String(achievements.length)],
-    ["Leadership", leaders.length ? leaders.map(l => `${escapeHtml(fullName(l.profile))} <span class="muted">(${l.position === "leader" ? "Leader" : "Co-leader"})</span>`).join("<br>") : '<span class="muted">Not assigned</span>'],
-  ];
-  $("detail-facts").innerHTML = facts.map(([k, v]) => `<div class="fact"><span class="fact-label">${k}</span><span class="fact-value">${v}</span></div>`).join("");
+  return active ? active.dataset.detailTab : "history";
 }
 
 function renderClubMembers(d) {
@@ -1909,23 +1879,19 @@ function renderClubPosts(d) {
   const byId = {};
   withClub.forEach(p => { byId[p.id] = p; });
 
-  // Announcements tab: club announcements, newest first
-  const announcements = withClub.filter(p => p.kind === "announcement");
-  const annList = $("detail-announcements-list");
-  annList.innerHTML = "";
-  announcements.forEach(p => annList.appendChild(renderClubPostCard(p, { showClub: false })));
-  $("detail-announcements-empty").hidden = announcements.length !== 0;
-
-  // Upcoming tab: events from today on, soonest first
+  // Upcoming Events: events from today on (soonest first). Older general club
+  // announcements from before this layout are listed after them.
   const upcoming = withClub
     .filter(p => p.kind === "event" && p.event_date >= today)
     .sort((a, b) => `${a.event_date}${a.start_time || ""}`.localeCompare(`${b.event_date}${b.start_time || ""}`));
+  const news = withClub.filter(p => p.kind === "announcement");
   const upList = $("detail-upcoming-list");
   upList.innerHTML = "";
-  upcoming.forEach(p => upList.appendChild(renderClubPostCard(p, { showClub: false })));
-  $("detail-upcoming-empty").hidden = upcoming.length !== 0;
+  [...upcoming, ...news].forEach(p => upList.appendChild(renderClubPostCard(p, { showClub: false })));
+  $("detail-upcoming-empty").hidden = upcoming.length + news.length !== 0;
 
-  // Event history: completed events (newest first), each with its results
+  // Event History: every event whose date has passed (newest first), with
+  // its results update(s) shown inside the same card
   const resultsByEvent = {};
   withClub.filter(p => p.kind === "event_result").forEach(r => {
     (resultsByEvent[r.parent_event_id] = resultsByEvent[r.parent_event_id] || []).push(r);
@@ -1937,44 +1903,32 @@ function renderClubPosts(d) {
   hist.innerHTML = "";
   completed.forEach(ev => {
     const results = (resultsByEvent[ev.id] || []).sort((a, b) => new Date(a.published_at) - new Date(b.published_at));
+    const d = parseDateOnly(ev.event_date);
     const el = document.createElement("article");
     el.className = "history-event";
     el.innerHTML = `
       <div class="history-event-date">
-        <strong>${parseDateOnly(ev.event_date).getDate()}</strong>
-        <span>${parseDateOnly(ev.event_date).toLocaleDateString("en-GB", { month: "short", year: "numeric" })}</span>
+        <strong>${d.getDate()}</strong>
+        <span>${d.toLocaleDateString("en-GB", { month: "short", year: "numeric" })}</span>
       </div>
       <div class="history-event-body">
         <h4>${escapeHtml(ev.title)}</h4>
         ${eventDetailsHtml(ev)}
-        ${ev.body ? `<p class="preserve-lines">${escapeHtml(ev.body)}</p>` : ""}
-        ${results.map(r => `
+        ${ev.body ? `<p class="preserve-lines history-event-desc">${escapeHtml(ev.body)}</p>` : ""}
+        ${results.length ? results.map(r => `
           <div class="history-result">
             <span class="history-result-label">${icon("check")}Results · posted ${formatShortDate(r.published_at)}</span>
-            ${r.title !== ev.title ? `<strong>${escapeHtml(r.title)}</strong>` : ""}
+            ${r.title !== ev.title ? `<strong class="history-result-title">${escapeHtml(r.title)}</strong>` : ""}
             ${r.body ? `<p class="preserve-lines">${escapeHtml(r.body)}</p>` : ""}
             ${photoGridHtml(r.photos)}
-          </div>`).join("")}
-        ${results.length === 0 && ev.cover_url ? `<img class="history-event-cover" src="${escapeHtml(ev.cover_url)}" alt="" loading="lazy">` : ""}
+          </div>`).join("") : `
+          ${ev.cover_url ? `<img class="history-event-cover" src="${escapeHtml(ev.cover_url)}" alt="" loading="lazy">` : ""}
+          <p class="history-no-results">${icon("clock")}Results haven't been posted yet.</p>`}
       </div>`;
     hist.appendChild(el);
   });
   orphanResults.forEach(r => hist.appendChild(renderClubPostCard(r, { showClub: false })));
   $("detail-history-empty").hidden = completed.length + orphanResults.length !== 0;
-}
-
-function renderClubAchievements(d) {
-  const list = $("detail-achievements-list");
-  list.innerHTML = d.achievements.map(a => `
-    <article class="achievement-card">
-      ${a.image_url ? `<img src="${escapeHtml(a.image_url)}" alt="" loading="lazy">` : `<span class="achievement-icon">${icon("trophy")}</span>`}
-      <div>
-        <h4>${escapeHtml(a.title)}</h4>
-        <span class="achievement-date">${formatLongDate(a.achieved_on)}</span>
-        ${a.description ? `<p class="preserve-lines">${escapeHtml(a.description)}</p>` : ""}
-      </div>
-    </article>`).join("");
-  $("detail-achievements-empty").hidden = d.achievements.length !== 0;
 }
 
 // Administrators get moderation controls right on the club page.

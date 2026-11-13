@@ -491,6 +491,11 @@ async function openClubModal(clubId) {
             <select id="ac-category">${categoriesCache.map(c => `<option${c.name === club.category ? " selected" : ""}>${escapeHtml(c.name)}</option>`).join("")}</select></div>
           <div class="field"><label for="ac-description">Description</label><textarea id="ac-description" rows="4" maxlength="2000">${escapeHtml(club.description)}</textarea></div>
           <div class="field">
+            <label for="ac-founded">Founded</label>
+            <input type="date" id="ac-founded" value="${localDateStr(club.created_at)}" max="${todayDateStr()}">
+            <span class="field-hint">For clubs that existed before they joined the site. Shown as "Founded" on the club page.</span>
+          </div>
+          <div class="field">
             <label>Logo</label>
             <div class="image-picker">
               <div class="image-picker-preview" id="ac-logo-preview"></div>
@@ -563,6 +568,9 @@ async function openClubModal(clubId) {
     const description = $("ac-description").value.trim();
     if (name.length < 2) { errorEl.textContent = "Name must be at least 2 characters."; return; }
     if (description.length < 10) { errorEl.textContent = "Description must be at least 10 characters."; return; }
+    const founded = $("ac-founded").value;
+    if (!founded) { errorEl.textContent = "Please set the founding date."; return; }
+    if (founded > todayDateStr()) { errorEl.textContent = "The founding date can't be in the future."; return; }
     if (clubsCache.some(c => c.id !== club.id && c.name.toLowerCase() === name.toLowerCase() && !["rejected", "archived"].includes(c.status))) {
       errorEl.textContent = "Another club already uses this name.";
       return;
@@ -573,6 +581,9 @@ async function openClubModal(clubId) {
       const { error } = await supabaseClient.from("clubs").update({
         name, description, category: $("ac-category").value, logo_url: logoUrl,
         recruitment_open: $("ac-recruiting").checked, updated_at: new Date().toISOString(),
+        // only touch the timestamp when the date actually changed, so the
+        // original time of day is kept otherwise
+        ...(founded !== localDateStr(club.created_at) ? { created_at: dateStrToNoonIso(founded) } : {}),
       }).eq("id", club.id);
       if (error) { errorEl.textContent = friendlyError(error); return; }
       showToast("Club updated.", "success");

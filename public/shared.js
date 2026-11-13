@@ -113,6 +113,20 @@ function todayDateStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+// timestamp -> "YYYY-MM-DD" in the viewer's local time (for <input type=date>)
+function localDateStr(iso) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// "YYYY-MM-DD" -> ISO timestamp at local noon, so the date shows the same
+// in every nearby time zone
+function dateStrToNoonIso(str) {
+  const d = parseDateOnly(str);
+  d.setHours(12, 0, 0, 0);
+  return d.toISOString();
+}
+
 function formatShortDate(iso) {
   return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }

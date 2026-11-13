@@ -6,7 +6,8 @@
 // events, achievements, profile edits, recruitment forms) waits for an
 // administrator's approval.
 
-const LEAD_TABS = ["overview", "applications", "members", "recruitment", "posts", "achievements", "profile"];
+// (achievements are hidden for now; the data and functions are kept)
+const LEAD_TABS = ["overview", "applications", "members", "recruitment", "posts", "profile"];
 const QUESTION_TYPES = {
   short_text: "Short answer",
   long_text: "Long answer",
@@ -212,8 +213,6 @@ function renderLeadOverview(el, d) {
       <div class="quick-actions">
         <button class="btn btn-secondary btn-sm btn-with-icon" data-quick="event">${icon("calendar")}Announce an event</button>
         <button class="btn btn-secondary btn-sm btn-with-icon" data-quick="event_result">${icon("image")}Post event results</button>
-        <button class="btn btn-secondary btn-sm btn-with-icon" data-quick="announcement">${icon("megaphone")}Club announcement</button>
-        <button class="btn btn-secondary btn-sm btn-with-icon" data-quick="achievement">${icon("trophy")}Add achievement</button>
       </div>
     </div>
   `;
@@ -753,7 +752,6 @@ function renderLeadPosts(el, d) {
     <div class="quick-actions">
       <button class="btn btn-primary btn-sm btn-with-icon" data-new-post="event" ${disabled}>${icon("calendar")}New event</button>
       <button class="btn btn-secondary btn-sm btn-with-icon" data-new-post="event_result" ${disabled}>${icon("image")}Post event results</button>
-      <button class="btn btn-secondary btn-sm btn-with-icon" data-new-post="announcement" ${disabled}>${icon("megaphone")}New announcement</button>
     </div>
     <div class="lead-list">
       ${d.posts.length === 0 ? '<p class="empty-state">Nothing posted yet.</p>' : d.posts.map(p => {
@@ -777,7 +775,7 @@ function renderLeadPosts(el, d) {
         </div>`;
       }).join("")}
     </div>
-    <p class="muted small-note">Approved posts can't be edited. Published events move to the club's Event History automatically after their date.</p>`;
+    <p class="muted small-note">Approved posts can't be edited. An event shows under Upcoming Events until its date, then moves to Event History, where its approved results appear inside it.</p>`;
 
   el.querySelectorAll("[data-new-post]").forEach(btn => btn.addEventListener("click", () => openPostModal(btn.dataset.newPost)));
   el.querySelectorAll("[data-edit-post]").forEach(btn => btn.addEventListener("click", () => openPostModal(null, d.posts.find(p => p.id === btn.dataset.editPost))));

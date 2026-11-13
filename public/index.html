@@ -274,6 +274,37 @@
         </div>
       </div>
 
+      <div class="home-columns">
+        <section class="home-section" aria-labelledby="leaderboard-heading">
+          <div class="home-section-head">
+            <h3 class="section-subheading" id="leaderboard-heading">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4"/><path d="M12 13v4M8.5 20.5h7M10 17h4v3.5h-4z"/></svg>
+              Most active clubs
+            </h3>
+            <div class="segmented" id="leaderboard-periods" role="tablist" aria-label="Leaderboard period">
+              <button class="segmented-btn" data-period="month" role="tab">Month</button>
+              <button class="segmented-btn" data-period="semester" role="tab">Semester</button>
+              <button class="segmented-btn" data-period="year" role="tab">Year</button>
+              <button class="segmented-btn active" data-period="all" role="tab">All time</button>
+            </div>
+          </div>
+          <div id="leaderboard" class="leaderboard"></div>
+          <p class="leaderboard-note">Ranked by approved activity: completed events (3 pts) and event results updates (1 pt).</p>
+        </section>
+
+        <section class="home-section" aria-labelledby="upcoming-heading">
+          <div class="home-section-head">
+            <h3 class="section-subheading" id="upcoming-heading">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+              Upcoming events
+            </h3>
+            <a class="see-all-link" href="#/announcements/events">See all</a>
+          </div>
+          <div id="home-upcoming" class="upcoming-list"></div>
+        </section>
+      </div>
+
+      <h3 class="section-subheading home-clubs-heading">All clubs</h3>
       <div class="home-toolbar">
         <div class="category-filters" id="category-filters" aria-label="Filter by category"></div>
         <div class="home-toolbar-right">
@@ -291,36 +322,6 @@
       <div id="club-grid" class="club-grid"></div>
       <div id="club-empty" class="empty-state" hidden>
         <p>No clubs match your search.</p>
-      </div>
-
-      <div class="home-columns">
-        <section class="home-section" aria-labelledby="leaderboard-heading">
-          <div class="home-section-head">
-            <h3 class="section-subheading" id="leaderboard-heading">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4"/><path d="M12 13v4M8.5 20.5h7M10 17h4v3.5h-4z"/></svg>
-              Most active clubs
-            </h3>
-            <div class="segmented" id="leaderboard-periods" role="tablist" aria-label="Leaderboard period">
-              <button class="segmented-btn" data-period="month" role="tab">Month</button>
-              <button class="segmented-btn" data-period="semester" role="tab">Semester</button>
-              <button class="segmented-btn" data-period="year" role="tab">Year</button>
-              <button class="segmented-btn active" data-period="all" role="tab">All time</button>
-            </div>
-          </div>
-          <div id="leaderboard" class="leaderboard"></div>
-          <p class="leaderboard-note">Ranked by approved activity: completed events (3 pts), announcements &amp; event updates (1 pt) and achievements (5 pts).</p>
-        </section>
-
-        <section class="home-section" aria-labelledby="upcoming-heading">
-          <div class="home-section-head">
-            <h3 class="section-subheading" id="upcoming-heading">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
-              Upcoming events
-            </h3>
-            <a class="see-all-link" href="#/announcements/events">See all</a>
-          </div>
-          <div id="home-upcoming" class="upcoming-list"></div>
-        </section>
       </div>
 
       <div id="announcements-section" class="home-announcements" hidden>
@@ -362,9 +363,8 @@
       <div class="category-filters" id="announcement-filters">
         <button class="category-filter-btn active" data-feed-filter="all">All</button>
         <button class="category-filter-btn" data-feed-filter="school">School</button>
-        <button class="category-filter-btn" data-feed-filter="club">Club announcements</button>
         <button class="category-filter-btn" data-feed-filter="events">Upcoming events</button>
-        <button class="category-filter-btn" data-feed-filter="updates">Event updates</button>
+        <button class="category-filter-btn" data-feed-filter="updates">Event results</button>
         <button class="category-filter-btn" data-feed-filter="past">Past events</button>
       </div>
 
@@ -535,6 +535,7 @@
             <h2 id="detail-name"></h2>
             <p class="club-detail-meta" id="detail-meta"></p>
             <p class="club-detail-leaders" id="detail-leaders"></p>
+            <p class="club-detail-description preserve-lines" id="detail-description"></p>
           </div>
           <div class="club-detail-actions" id="detail-actions"></div>
         </div>
@@ -542,29 +543,14 @@
         <div class="admin-controls" id="detail-admin-controls" hidden></div>
 
         <div class="club-detail-tabs" role="tablist">
-          <button class="detail-tab active" data-detail-tab="overview" role="tab">Overview</button>
-          <button class="detail-tab" data-detail-tab="members" role="tab">Members</button>
-          <button class="detail-tab" data-detail-tab="announcements" role="tab">Announcements</button>
+          <button class="detail-tab active" data-detail-tab="history" role="tab">Event History</button>
           <button class="detail-tab" data-detail-tab="upcoming" role="tab">Upcoming Events</button>
-          <button class="detail-tab" data-detail-tab="history" role="tab">Event History</button>
-          <button class="detail-tab" data-detail-tab="achievements" role="tab">Achievements</button>
+          <button class="detail-tab" data-detail-tab="members" role="tab">Members</button>
         </div>
 
-        <div class="club-detail-panel active" id="detail-panel-overview">
-          <h3>About</h3>
-          <p id="detail-description" class="preserve-lines"></p>
-          <div class="overview-facts" id="detail-facts"></div>
-        </div>
-
-        <div class="club-detail-panel" id="detail-panel-members">
-          <h3 id="detail-members-heading">Members</h3>
-          <div id="detail-members-list" class="members-list"></div>
-          <p class="empty-state" id="detail-members-empty" hidden>No members yet.</p>
-        </div>
-
-        <div class="club-detail-panel" id="detail-panel-announcements">
-          <div id="detail-announcements-list" class="feed-list"></div>
-          <p class="empty-state" id="detail-announcements-empty" hidden>No announcements yet.</p>
+        <div class="club-detail-panel active" id="detail-panel-history">
+          <div id="detail-history-list" class="event-history"></div>
+          <p class="empty-state" id="detail-history-empty" hidden>No past events yet.</p>
         </div>
 
         <div class="club-detail-panel" id="detail-panel-upcoming">
@@ -572,14 +558,10 @@
           <p class="empty-state" id="detail-upcoming-empty" hidden>No upcoming events.</p>
         </div>
 
-        <div class="club-detail-panel" id="detail-panel-history">
-          <div id="detail-history-list" class="event-history"></div>
-          <p class="empty-state" id="detail-history-empty" hidden>No completed events yet.</p>
-        </div>
-
-        <div class="club-detail-panel" id="detail-panel-achievements">
-          <div id="detail-achievements-list" class="achievement-list"></div>
-          <p class="empty-state" id="detail-achievements-empty" hidden>No achievements yet.</p>
+        <div class="club-detail-panel" id="detail-panel-members">
+          <h3 id="detail-members-heading">Members</h3>
+          <div id="detail-members-list" class="members-list"></div>
+          <p class="empty-state" id="detail-members-empty" hidden>No members yet.</p>
         </div>
       </div>
     </section>
@@ -605,7 +587,6 @@
           <button class="detail-tab" data-lead-tab="members" role="tab">Members <span class="tab-count" id="lead-tab-members-count"></span></button>
           <button class="detail-tab" data-lead-tab="recruitment" role="tab">Recruitment</button>
           <button class="detail-tab" data-lead-tab="posts" role="tab">Posts &amp; Events</button>
-          <button class="detail-tab" data-lead-tab="achievements" role="tab">Achievements</button>
           <button class="detail-tab" data-lead-tab="profile" role="tab">Club Profile</button>
         </div>
         <div class="club-detail-panel active" id="lead-panel"></div>
@@ -738,7 +719,6 @@
         <div class="account-type-toggle kind-toggle" id="post-kind-toggle">
           <button type="button" class="account-type-btn active" data-post-kind="event">Event announcement</button>
           <button type="button" class="account-type-btn" data-post-kind="event_result">Event results</button>
-          <button type="button" class="account-type-btn" data-post-kind="announcement">Club announcement</button>
         </div>
       </div>
       <div class="field" data-post-only="event_result">
