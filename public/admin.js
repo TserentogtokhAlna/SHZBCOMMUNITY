@@ -456,6 +456,74 @@ function renderClubsTable() {
 $("clubs-status").addEventListener("change", renderClubsTable);
 $("clubs-search").addEventListener("input", renderClubsTable);
 
+// ---------- new club (admin-created clubs are active immediately) ----------
+
+const newClubLogoPicker = setupImagePicker({
+  input: $("nc-logo-input"),
+  preview: $("nc-logo-preview"),
+  removeBtn: $("nc-logo-remove"),
+  folder: "logos",
+  errorEl: $("nc-error"),
+});
+
+async function openNewClubModal() {
+  $("form-new-club").reset();
+  $("nc-error").textContent = "";
+  newClubLogoPicker.setUrl(null);
+  if (categoriesCache.length === 0) await loadCategoryNames();
+  if (Object.keys(profilesById).length === 0) await loadProfiles().catch(() => {});
+
+  $("nc-category").innerHTML = categoriesCache.map(c => `<option>${escapeHtml(c.name)}</option>`).join("");
+  const students = Object.values(profilesById)
+    .filter(p => p.account_type === "student" && p.role !== "admin" && p.status === "active")
+    .sort((a, b) => fullName(a).localeCompare(fullName(b)));
+  $("nc-leader").innerHTML = `<option value="">No leader yet</option>` + students.map(s => `
+    <option value="${s.id}">${escapeHtml(fullName(s))}${s.graduation_year ? ` — ${escapeHtml(formatGradeLabel(s.graduation_year, s.class_section))}` : ""}</option>`).join("");
+  $("nc-founded").value = todayDateStr();
+  $("nc-founded").max = todayDateStr();
+  openModal("new-club-modal-overlay");
+  $("nc-name").focus();
+}
+
+$("new-club-btn").addEventListener("click", openNewClubModal);
+
+$("form-new-club").addEventListener("submit", async e => {
+  e.preventDefault();
+  const errorEl = $("nc-error");
+  errorEl.textContent = "";
+  const name = $("nc-name").value.trim();
+  const description = $("nc-description").value.trim();
+  const founded = $("nc-founded").value;
+  if (name.length < 2) { errorEl.textContent = "Club name must be at least 2 characters."; return; }
+  if (description.length < 10) { errorEl.textContent = "Description must be at least 10 characters."; return; }
+  if (founded && founded > todayDateStr()) { errorEl.textContent = "The founding date can't be in the future."; return; }
+
+  await withBusy($("nc-submit"), "Creating…", async () => {
+    let logoUrl;
+    try { logoUrl = await newClubLogoPicker.getUrl(); } catch (err) { errorEl.textContent = friendlyError(err); return; }
+    const { data: clubId, error } = await supabaseClient.rpc("admin_create_club", {
+      p_name: name,
+      p_category: $("nc-category").value,
+      p_description: description,
+      p_logo_url: logoUrl,
+      p_founded: founded || null,
+      p_leader: $("nc-leader").value || null,
+    });
+    if (error) {
+      errorEl.textContent = /function .*admin_create_club/i.test(error.message)
+        ? "Run supabase/migration_007_admin_create_club.sql in Supabase first."
+        : friendlyError(error);
+      return;
+    }
+    closeModalById("new-club-modal-overlay");
+    showToast(`${name} created and live on the site.`, "success");
+    $("clubs-status").value = "active";
+    await loadClubs();
+    history.replaceState(null, "", `#clubs/${clubId}`);
+    openClubModal(clubId);
+  });
+});
+
 async function openClubModal(clubId) {
   const club = clubsCache.find(c => c.id === clubId);
   if (!club) {

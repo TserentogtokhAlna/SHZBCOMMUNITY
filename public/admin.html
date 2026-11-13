@@ -163,10 +163,16 @@
 
     <!-- ========== CLUBS ========== -->
     <section class="admin-panel" id="section-clubs">
-      <div class="panel-heading">
-        <p class="admin-kicker">Administration</p>
-        <h2>Clubs</h2>
-        <p class="panel-subtext">Edit clubs, assign leaders, and suspend, archive or delete clubs.</p>
+      <div class="panel-heading panel-heading-row">
+        <div>
+          <p class="admin-kicker">Administration</p>
+          <h2>Clubs</h2>
+          <p class="panel-subtext">Create clubs, edit them, assign leaders, and suspend, archive or delete clubs.</p>
+        </div>
+        <button class="btn btn-accent btn-with-icon" id="new-club-btn">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          New club
+        </button>
       </div>
       <div class="admin-filters">
         <select id="clubs-status" class="filter-select" aria-label="Club status">
@@ -315,6 +321,58 @@
       <button class="modal-close" data-close-modal="club-modal-overlay" aria-label="Close">&times;</button>
     </div>
     <div id="club-modal-body"></div>
+  </div>
+</div>
+
+<!-- ===================== NEW CLUB MODAL ===================== -->
+<div id="new-club-modal-overlay" class="modal-overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="new-club-title">
+    <div class="modal-header">
+      <h2 id="new-club-title">New club</h2>
+      <button class="modal-close" data-close-modal="new-club-modal-overlay" aria-label="Close">&times;</button>
+    </div>
+    <p class="modal-intro">Clubs created by an administrator are active right away. No approval needed.</p>
+    <form id="form-new-club" novalidate>
+      <div class="field">
+        <label for="nc-name">Club name</label>
+        <input type="text" id="nc-name" maxlength="80" required>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label for="nc-category">Category</label>
+          <select id="nc-category"></select>
+        </div>
+        <div class="field">
+          <label for="nc-founded">Founded</label>
+          <input type="date" id="nc-founded">
+        </div>
+      </div>
+      <div class="field">
+        <label for="nc-description">Description</label>
+        <textarea id="nc-description" rows="4" maxlength="2000" placeholder="What does the club do? Who is it for?" required></textarea>
+      </div>
+      <div class="field">
+        <label for="nc-leader">Leader (optional)</label>
+        <select id="nc-leader"></select>
+        <span class="field-hint">You can also assign or change the leader later from Manage.</span>
+      </div>
+      <div class="field">
+        <label>Logo (optional)</label>
+        <div class="image-picker">
+          <div class="image-picker-preview" id="nc-logo-preview"></div>
+          <div class="image-picker-actions">
+            <label class="btn btn-secondary btn-sm file-btn">Choose image<input type="file" id="nc-logo-input" accept="image/png,image/jpeg,image/webp,image/gif" hidden></label>
+            <button type="button" class="btn-link inline-link" id="nc-logo-remove" hidden>Remove</button>
+            <span class="field-hint">PNG, JPG, WEBP or GIF, up to 5 MB.</span>
+          </div>
+        </div>
+      </div>
+      <p class="form-error" id="nc-error" role="alert"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close-modal="new-club-modal-overlay">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="nc-submit">Create club</button>
+      </div>
+    </form>
   </div>
 </div>
 
