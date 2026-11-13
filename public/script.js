@@ -828,7 +828,7 @@ async function renderLeaderboard() {
       <span class="lb-main">
         <span class="lb-name">${escapeHtml(r.name)}</span>
         <span class="lb-bar"><span style="width:${r.score ? Math.max(6, Math.round((r.score / top) * 100)) : 0}%"></span></span>
-        <span class="lb-breakdown">${r.events_count} event${r.events_count === 1 ? "" : "s"} · ${r.posts_count} update${r.posts_count === 1 ? "" : "s"}</span>
+        <span class="lb-breakdown">${r.events_count} event${r.events_count === 1 ? "" : "s"} held · ${r.posts_count} post${r.posts_count === 1 ? "" : "s"}</span>
       </span>
       <span class="lb-score"><strong>${r.score}</strong><span>pts</span></span>
     </a>

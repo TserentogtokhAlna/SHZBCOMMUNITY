@@ -19,6 +19,7 @@ Run the SQL files in `supabase/` **in order** in the Supabase dashboard (SQL Edi
 7. `migration_007_admin_create_club.sql`: lets administrators create clubs directly (active immediately, with a founding date and optional leader)
 8. `migration_008_profile_self_edit.sql`: people can edit their own name, and students their own grade and class (including Graduated)
 9. `migration_009_past_events.sql`: leaders can record past events (date in the past, description, up to 3 photos) straight into Event History
+10. `migration_010_leaderboard_counts_events.sql`: upcoming event announcements also score on the leaderboard (1 pt when published)
 
 Migration 006 runs in a single transaction. If anything fails, nothing is applied. It carries existing data forward:
 - Existing approved clubs' creators become their leaders.
@@ -80,7 +81,7 @@ All permissions are enforced in the database: RLS policies plus `security define
 - **Applications:** students fill in the form, with one pending application per club. Leaders review answers, add internal notes, and accept or reject. Accepting creates the membership in the same transaction, and the student is notified.
 - **Leaving:** a member requests to leave and a leader confirms. The membership gets an end date and stays on the student's history; it is never deleted.
 - **Posts:** event announcements (date, times, location, poster), event results (linked to a past event, 1–3 photos) and club announcements. Everything waits for admin approval. An event appears under "Upcoming" until its date, then moves to Event History automatically.
-- **Leaderboard:** ranks clubs by approved activity: completed events ×3, announcements and event updates ×1, achievements ×5. Periods are month, semester (Sep–Jan, Feb–Aug), school year (from Sep 1) and all time.
+- **Leaderboard:** ranks clubs by approved activity: every published post (event announcements, past events, results) ×1, every event that has taken place ×3, achievements ×5 (hidden for now). Periods are month, semester (Sep–Jan, Feb–Aug), school year (from Sep 1) and all time.
 - **Notifications:** created inside the same database transaction as the action, so a notification exists only if the action succeeded.
 
 ## Project layout
