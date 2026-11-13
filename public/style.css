@@ -4574,3 +4574,34 @@ body.lightbox-open {
   font-size: 12.5px;
   color: var(--text-muted);
 }
+
+/* ---------- event photos: one row, split evenly (1, 2 or 3 columns) ---------- */
+
+.photo-grid,
+.photo-grid.photos-1,
+.photo-grid.photos-2,
+.photo-grid.photos-3 {
+  grid-template-rows: none;
+}
+
+.photo-grid.photos-1 { grid-template-columns: 1fr; }
+.photo-grid.photos-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.photo-grid.photos-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.photo-grid.photos-3 a:first-child {
+  grid-row: auto;
+}
+
+.photo-grid img {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.photo-grid.photos-1 img {
+  aspect-ratio: 16 / 9;
+}
