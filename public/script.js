@@ -813,19 +813,21 @@ async function renderLeaderboard() {
     el.innerHTML = errorStateHtml("Couldn't load the leaderboard.");
     return;
   }
-  const ranked = data.filter(r => r.score > 0).slice(0, 10);
+  // every active club is listed (top 10), even before anyone has points
+  const ranked = data.slice(0, 10);
   if (ranked.length === 0) {
-    el.innerHTML = `<p class="empty-state">No club activity in this period yet.</p>`;
+    el.innerHTML = `<p class="empty-state">No active clubs yet.</p>`;
     return;
   }
   const top = ranked[0].score || 1;
-  el.innerHTML = ranked.map((r, i) => `
-    <a class="lb-row${i < 3 ? ` is-top is-top-${i + 1}` : ""}" href="#/club/${r.club_id}">
-      <span class="lb-rank">${i + 1}</span>
+  const noActivity = ranked[0].score === 0;
+  el.innerHTML = (noActivity ? `<p class="leaderboard-empty-note">No approved activity ${leaderboardPeriod === "all" ? "yet" : "in this period"}. Clubs earn points when their events take place and their results are published.</p>` : "") + ranked.map((r, i) => `
+    <a class="lb-row${!noActivity && i < 3 ? ` is-top is-top-${i + 1}` : ""}" href="#/club/${r.club_id}">
+      <span class="lb-rank">${noActivity ? "–" : i + 1}</span>
       <span class="lb-logo" data-category="${escapeHtml(r.category)}">${clubLogoHtml(r)}</span>
       <span class="lb-main">
         <span class="lb-name">${escapeHtml(r.name)}</span>
-        <span class="lb-bar"><span style="width:${Math.max(6, Math.round((r.score / top) * 100))}%"></span></span>
+        <span class="lb-bar"><span style="width:${r.score ? Math.max(6, Math.round((r.score / top) * 100)) : 0}%"></span></span>
         <span class="lb-breakdown">${r.events_count} event${r.events_count === 1 ? "" : "s"} · ${r.posts_count} update${r.posts_count === 1 ? "" : "s"}</span>
       </span>
       <span class="lb-score"><strong>${r.score}</strong><span>pts</span></span>
