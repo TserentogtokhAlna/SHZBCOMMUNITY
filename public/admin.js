@@ -175,7 +175,9 @@ let approvalsCache = [];
 
 function queueKind(r) {
   if (r.kind !== "post") return r.kind;
-  return r.kind_label === "Event announcement" ? "post:event" : r.kind_label === "Event results" ? "post:event_result" : "post:announcement";
+  return r.kind_label === "Event announcement" ? "post:event"
+    : r.kind_label === "Past event" ? "post:past_event"
+    : r.kind_label === "Event results" ? "post:event_result" : "post:announcement";
 }
 
 async function loadApprovals() {

@@ -743,7 +743,14 @@ async function saveQuestionnaire(submit, btn) {
 
 // ---------- posts & events ----------
 
-const POST_KIND_LABELS = { event: "Event announcement", event_result: "Event results", announcement: "Club announcement" };
+const POST_KIND_LABELS = { event: "Event announcement", past_event: "Past event", event_result: "Event results", announcement: "Club announcement" };
+
+// A "past event" is stored as an ordinary event whose date was already in the
+// past when it was submitted (recorded straight into Event History).
+function uiPostKind(post) {
+  if (post.kind === "event" && post.event_date < localDateStr(post.submitted_at)) return "past_event";
+  return post.kind;
+}
 
 function renderLeadPosts(el, d) {
   const disabled = d.club.status !== "approved" ? "disabled" : "";
@@ -752,10 +759,12 @@ function renderLeadPosts(el, d) {
     <div class="quick-actions">
       <button class="btn btn-primary btn-sm btn-with-icon" data-new-post="event" ${disabled}>${icon("calendar")}New event</button>
       <button class="btn btn-secondary btn-sm btn-with-icon" data-new-post="event_result" ${disabled}>${icon("image")}Post event results</button>
+      <button class="btn btn-secondary btn-sm btn-with-icon" data-new-post="past_event" ${disabled}>${icon("clock")}Add past event</button>
     </div>
     <div class="lead-list">
       ${d.posts.length === 0 ? '<p class="empty-state">Nothing posted yet.</p>' : d.posts.map(p => {
         const parent = p.parent_event_id ? d.posts.find(x => x.id === p.parent_event_id) : null;
+        const uk = uiPostKind(p);
         const lifecycle = p.kind === "event" && p.status === "approved"
           ? (p.event_date >= today ? '<span class="status-badge is-open">Upcoming</span>' : '<span class="status-badge is-closed">Completed</span>') : "";
         return `
@@ -763,19 +772,19 @@ function renderLeadPosts(el, d) {
           ${p.cover_url ? `<img class="lead-thumb" src="${escapeHtml(p.cover_url)}" alt="">` : p.photos && p.photos.length ? `<img class="lead-thumb" src="${escapeHtml(p.photos[0].url)}" alt="">` : `<span class="lead-thumb is-icon">${icon(p.kind === "event" ? "calendar" : p.kind === "event_result" ? "image" : "megaphone")}</span>`}
           <div class="lead-row-main">
             <strong>${escapeHtml(p.title)}</strong>
-            <span class="muted">${POST_KIND_LABELS[p.kind]}${p.kind === "event" ? ` · ${escapeHtml(formatEventDay(p.event_date))}` : ""}${parent ? ` · for “${escapeHtml(parent.title)}”` : ""} · submitted ${formatShortDate(p.submitted_at)}</span>
+            <span class="muted">${POST_KIND_LABELS[uk]}${p.kind === "event" ? ` · ${escapeHtml(formatEventDay(p.event_date))}` : ""}${parent ? ` · for “${escapeHtml(parent.title)}”` : ""} · submitted ${formatShortDate(p.submitted_at)}</span>
             ${p.review_note && p.status !== "approved" ? `<p class="review-note"><strong>Administrator:</strong> ${escapeHtml(p.review_note)}</p>` : ""}
           </div>
           <span class="lead-row-badges">${statusBadge(p.status)}${lifecycle}</span>
           <span class="lead-row-actions">
             ${["pending", "changes_requested"].includes(p.status) ? `<button class="btn btn-secondary btn-sm" data-edit-post="${p.id}">${p.status === "changes_requested" ? "Edit &amp; resubmit" : "Edit"}</button>` : ""}
             ${p.status !== "approved" ? `<button class="btn-danger" data-withdraw-post="${p.id}">${p.status === "rejected" ? "Delete" : "Withdraw"}</button>` : ""}
-            ${p.status === "approved" && p.kind === "event" && p.event_date <= today && !d.posts.some(x => x.parent_event_id === p.id && x.status !== "rejected") ? `<button class="btn btn-secondary btn-sm" data-results-for="${p.id}">Add results</button>` : ""}
+            ${p.status === "approved" && uk === "event" && p.event_date <= today && !d.posts.some(x => x.parent_event_id === p.id && x.status !== "rejected") ? `<button class="btn btn-secondary btn-sm" data-results-for="${p.id}">Add results</button>` : ""}
           </span>
         </div>`;
       }).join("")}
     </div>
-    <p class="muted small-note">Approved posts can't be edited. An event shows under Upcoming Events until its date, then moves to Event History, where its approved results appear inside it.</p>`;
+    <p class="muted small-note">Approved posts can't be edited. An event shows under Upcoming Events until its date, then moves to Event History, where its approved results appear inside it. Use <strong>Add past event</strong> for events that happened before (for example, before the club joined the site).</p>`;
 
   el.querySelectorAll("[data-new-post]").forEach(btn => btn.addEventListener("click", () => openPostModal(btn.dataset.newPost)));
   el.querySelectorAll("[data-edit-post]").forEach(btn => btn.addEventListener("click", () => openPostModal(null, d.posts.find(p => p.id === btn.dataset.editPost))));
@@ -817,15 +826,27 @@ function setPostKind(kind) {
     el.hidden = !el.dataset.postOnly.split(" ").includes(kind);
   });
   $("post-cover-label").textContent = kind === "event" ? "Poster (optional, one image)" : "Image (optional)";
-  $("post-body").placeholder = kind === "event_result" ? "How did it go? Results, winners, highlights..." : kind === "event" ? "What's happening and who should come?" : "Your announcement...";
-  if (kind === "event") $("post-date").min = todayDateStr();
+  $("post-photos-label").textContent = kind === "past_event" ? "Photos (optional, up to 3)" : "Photos (1–3)";
+  $("post-body").placeholder = kind === "event_result" ? "How did it go? Results, winners, highlights..."
+    : kind === "past_event" ? "What happened? Results, winners, highlights..."
+    : kind === "event" ? "What's happening and who should come?" : "Your announcement...";
+  const dateInput = $("post-date");
+  if (kind === "event") {
+    dateInput.min = todayDateStr();
+    dateInput.removeAttribute("max");
+  } else if (kind === "past_event") {
+    const y = new Date();
+    y.setDate(y.getDate() - 1);
+    dateInput.max = localDateStr(y.toISOString());
+    dateInput.removeAttribute("min");
+  }
 }
 
 function openPostModal(kind, post = null, parentId = null) {
   const d = lead.data;
   if (!d) return;
   postState.editing = post;
-  const k = post ? post.kind : kind;
+  const k = post ? uiPostKind(post) : kind;
   $("form-post").reset();
   $("post-error").textContent = "";
   $("post-modal-title").textContent = post ? `Edit ${POST_KIND_LABELS[k].toLowerCase()}` : `New ${POST_KIND_LABELS[k].toLowerCase()}`;
@@ -906,9 +927,12 @@ $("form-post").addEventListener("submit", async e => {
   const parent = $("post-parent").value;
 
   if (title.length < 3) { errorEl.textContent = "Title must be at least 3 characters."; return; }
-  if (kind === "event") {
+  const isEvent = kind === "event" || kind === "past_event";
+  if (isEvent) {
     if (!eventDate) { errorEl.textContent = "Please choose the event date."; return; }
-    if (eventDate < todayDateStr()) { errorEl.textContent = "The event date can't be in the past."; return; }
+    if (kind === "event" && eventDate < todayDateStr()) { errorEl.textContent = "The event date can't be in the past. Use \"Add past event\" for events that already happened."; return; }
+    if (kind === "past_event" && eventDate >= todayDateStr()) { errorEl.textContent = "A past event's date must be before today."; return; }
+    if (kind === "past_event" && !body) { errorEl.textContent = "Please describe the event."; return; }
     if (end && !start) { errorEl.textContent = "Add a start time too."; return; }
     if (start && end && end < start) { errorEl.textContent = "The end time must be after the start time."; return; }
   } else if (kind === "event_result") {
@@ -924,8 +948,8 @@ $("form-post").addEventListener("submit", async e => {
     let coverUrl = null;
     let photoUrls = [];
     try {
-      if (kind !== "event_result") coverUrl = await postCoverPicker.getUrl();
-      if (kind === "event_result") {
+      if (kind === "event" || kind === "announcement") coverUrl = await postCoverPicker.getUrl();
+      if (kind === "event_result" || kind === "past_event") {
         for (const p of postState.photos) {
           if (p.file) {
             p.url = await uploadImage(p.file, "photos");
@@ -941,13 +965,13 @@ $("form-post").addEventListener("submit", async e => {
 
     const { error } = await supabaseClient.rpc("submit_club_post", {
       p_club: lead.clubId,
-      p_kind: kind,
+      p_kind: kind === "past_event" ? "event" : kind,
       p_title: title,
       p_body: body,
-      p_event_date: kind === "event" ? eventDate : null,
-      p_start_time: kind === "event" && start ? start : null,
-      p_end_time: kind === "event" && end ? end : null,
-      p_location: kind === "event" ? $("post-location").value.trim() : "",
+      p_event_date: isEvent ? eventDate : null,
+      p_start_time: isEvent && start ? start : null,
+      p_end_time: isEvent && end ? end : null,
+      p_location: isEvent ? $("post-location").value.trim() : "",
       p_cover_url: coverUrl,
       p_parent_event: kind === "event_result" ? parent : null,
       p_photos: photoUrls,

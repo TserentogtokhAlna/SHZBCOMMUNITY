@@ -1977,7 +1977,7 @@ function renderClubPosts(d) {
             ${r.title !== ev.title ? `<strong class="history-result-title">${escapeHtml(r.title)}</strong>` : ""}
             ${r.body ? `<p class="preserve-lines">${escapeHtml(r.body)}</p>` : ""}
             ${photoGridHtml(r.photos)}
-          </div>`).join("") : `
+          </div>`).join("") : ev.photos && ev.photos.length ? photoGridHtml(ev.photos) : `
           ${ev.cover_url ? `<img class="history-event-cover" src="${escapeHtml(ev.cover_url)}" alt="" loading="lazy">` : ""}
           <p class="history-no-results">${icon("clock")}Results haven't been posted yet.</p>`}
       </div>`;

@@ -18,6 +18,7 @@ Run the SQL files in `supabase/` **in order** in the Supabase dashboard (SQL Edi
 6. `migration_006_platform.sql`: leaders, approvals, recruitment forms, applications, posts, achievements, notifications, categories, leaderboard, and image storage
 7. `migration_007_admin_create_club.sql`: lets administrators create clubs directly (active immediately, with a founding date and optional leader)
 8. `migration_008_profile_self_edit.sql`: people can edit their own name, and students their own grade and class (including Graduated)
+9. `migration_009_past_events.sql`: leaders can record past events (date in the past, description, up to 3 photos) straight into Event History
 
 Migration 006 runs in a single transaction. If anything fails, nothing is applied. It carries existing data forward:
 - Existing approved clubs' creators become their leaders.

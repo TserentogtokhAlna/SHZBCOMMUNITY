@@ -751,6 +751,7 @@
         <div class="account-type-toggle kind-toggle" id="post-kind-toggle">
           <button type="button" class="account-type-btn active" data-post-kind="event">Event announcement</button>
           <button type="button" class="account-type-btn" data-post-kind="event_result">Event results</button>
+          <button type="button" class="account-type-btn" data-post-kind="past_event">Past event</button>
         </div>
       </div>
       <div class="field" data-post-only="event_result">
@@ -766,7 +767,7 @@
         <label for="post-body">Description</label>
         <textarea id="post-body" rows="5" maxlength="5000"></textarea>
       </div>
-      <div class="form-row" data-post-only="event">
+      <div class="form-row" data-post-only="event past_event">
         <div class="field">
           <label for="post-date">Event date</label>
           <input type="date" id="post-date">
@@ -780,7 +781,7 @@
           <input type="time" id="post-end">
         </div>
       </div>
-      <div class="field" data-post-only="event">
+      <div class="field" data-post-only="event past_event">
         <label for="post-location">Location</label>
         <input type="text" id="post-location" maxlength="200" placeholder="e.g. Assembly hall">
       </div>
@@ -795,8 +796,8 @@
           </div>
         </div>
       </div>
-      <div class="field" data-post-only="event_result">
-        <label>Photos (1–3)</label>
+      <div class="field" data-post-only="event_result past_event">
+        <label id="post-photos-label">Photos (1–3)</label>
         <div class="photo-picker" id="post-photos"></div>
         <label class="btn btn-secondary btn-sm file-btn" id="post-photos-add">Add photos<input type="file" id="post-photos-input" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden></label>
       </div>
