@@ -428,3 +428,100 @@ function setupImagePicker({ input, preview, removeBtn, folder, errorEl }) {
     },
   };
 }
+
+// ---------- image lightbox ----------
+// Tapping a poster or event photo opens it full size in the middle of the
+// page (no new tab). Photos in the same grid can be stepped through with the
+// arrows or the keyboard. Close with ×, Esc, or a tap outside the image.
+
+const LIGHTBOX_SELECTOR = "img.feed-cover, .photo-grid img, img.history-event-cover, .upcoming-poster img, .achievement-card img, img.preview-img, .photo-thumb img";
+
+const lightbox = { el: null, images: [], index: 0, returnFocus: null };
+
+function buildLightbox() {
+  const el = document.createElement("div");
+  el.className = "lightbox";
+  el.setAttribute("role", "dialog");
+  el.setAttribute("aria-modal", "true");
+  el.setAttribute("aria-label", "Image viewer");
+  el.hidden = true;
+  el.innerHTML = `
+    <button type="button" class="lightbox-close" aria-label="Close">${icon("x")}</button>
+    <button type="button" class="lightbox-nav lightbox-prev" aria-label="Previous image"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button>
+    <figure class="lightbox-figure">
+      <img class="lightbox-img" alt="">
+      <figcaption class="lightbox-count"></figcaption>
+    </figure>
+    <button type="button" class="lightbox-nav lightbox-next" aria-label="Next image">${icon("chevronRight")}</button>`;
+  document.body.appendChild(el);
+
+  el.addEventListener("click", e => {
+    if (e.target.closest(".lightbox-close") || e.target === el || e.target.classList.contains("lightbox-figure")) closeLightbox();
+  });
+  el.querySelector(".lightbox-prev").addEventListener("click", () => stepLightbox(-1));
+  el.querySelector(".lightbox-next").addEventListener("click", () => stepLightbox(1));
+
+  // swipe left/right on phones
+  let startX = null;
+  el.addEventListener("touchstart", e => { startX = e.touches[0].clientX; }, { passive: true });
+  el.addEventListener("touchend", e => {
+    if (startX === null) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) > 50) stepLightbox(dx < 0 ? 1 : -1);
+    startX = null;
+  });
+  return el;
+}
+
+function renderLightbox() {
+  const el = lightbox.el;
+  const img = el.querySelector(".lightbox-img");
+  const many = lightbox.images.length > 1;
+  img.src = lightbox.images[lightbox.index];
+  el.querySelector(".lightbox-count").textContent = many ? `${lightbox.index + 1} / ${lightbox.images.length}` : "";
+  el.querySelectorAll(".lightbox-nav").forEach(b => { b.hidden = !many; });
+}
+
+function openLightbox(images, index = 0) {
+  if (!lightbox.el) lightbox.el = buildLightbox();
+  lightbox.images = images;
+  lightbox.index = index;
+  lightbox.returnFocus = document.activeElement;
+  renderLightbox();
+  lightbox.el.hidden = false;
+  document.body.classList.add("lightbox-open");
+  lightbox.el.querySelector(".lightbox-close").focus();
+}
+
+function closeLightbox() {
+  if (!lightbox.el || lightbox.el.hidden) return;
+  lightbox.el.hidden = true;
+  lightbox.el.querySelector(".lightbox-img").removeAttribute("src");
+  document.body.classList.remove("lightbox-open");
+  if (lightbox.returnFocus && lightbox.returnFocus.focus) lightbox.returnFocus.focus();
+}
+
+function stepLightbox(delta) {
+  const n = lightbox.images.length;
+  if (n < 2) return;
+  lightbox.index = (lightbox.index + delta + n) % n;
+  renderLightbox();
+}
+
+// capture phase, so it runs before card links (e.g. upcoming event cards)
+document.addEventListener("click", e => {
+  const img = e.target.closest(LIGHTBOX_SELECTOR);
+  if (!img || !img.src || img.closest(".lightbox")) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const grid = img.closest(".photo-grid");
+  const group = grid ? [...grid.querySelectorAll("img")] : [img];
+  openLightbox(group.map(i => i.currentSrc || i.src), Math.max(0, group.indexOf(img)));
+}, true);
+
+document.addEventListener("keydown", e => {
+  if (!lightbox.el || lightbox.el.hidden) return;
+  if (e.key === "Escape") { e.stopImmediatePropagation(); closeLightbox(); }
+  else if (e.key === "ArrowLeft") stepLightbox(-1);
+  else if (e.key === "ArrowRight") stepLightbox(1);
+}, true);
