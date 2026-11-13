@@ -1176,6 +1176,8 @@ async function loadFeed() {
 
   const today = todayDateStr();
   const now = new Date();
+  // events whose results are already published count as past, like on club pages
+  const hasResults = new Set(posts.filter(p => p.kind === "event_result" && p.parent_event_id).map(p => p.parent_event_id));
   feedItems = [
     ...school.map(a => ({
       source: "school",
@@ -1188,7 +1190,7 @@ async function loadFeed() {
     ...posts.filter(p => p.club && p.club.status !== "suspended").map(p => ({
       source: "club",
       kind: p.kind,
-      isPast: p.kind === "event" && p.event_date < today,
+      isPast: p.kind === "event" && (p.event_date < today || hasResults.has(p.id)),
       sortDate: p.published_at || p.created_at,
       eventSort: p.event_date ? `${p.event_date}T${p.start_time || "00:00"}` : null,
       data: p,
@@ -1879,10 +1881,18 @@ function renderClubPosts(d) {
   const byId = {};
   withClub.forEach(p => { byId[p.id] = p; });
 
-  // Upcoming Events: events from today on (soonest first). Older general club
-  // announcements from before this layout are listed after them.
+  const resultsByEvent = {};
+  withClub.filter(p => p.kind === "event_result").forEach(r => {
+    (resultsByEvent[r.parent_event_id] = resultsByEvent[r.parent_event_id] || []).push(r);
+  });
+  // an event belongs to history once its date has passed OR its results are
+  // out (results can be posted on the day of the event itself)
+  const isDone = ev => ev.event_date < today || !!resultsByEvent[ev.id];
+
+  // Upcoming Events: events that haven't happened yet (soonest first). Older
+  // general club announcements from before this layout are listed after them.
   const upcoming = withClub
-    .filter(p => p.kind === "event" && p.event_date >= today)
+    .filter(p => p.kind === "event" && !isDone(p))
     .sort((a, b) => `${a.event_date}${a.start_time || ""}`.localeCompare(`${b.event_date}${b.start_time || ""}`));
   const news = withClub.filter(p => p.kind === "announcement");
   const upList = $("detail-upcoming-list");
@@ -1892,11 +1902,7 @@ function renderClubPosts(d) {
 
   // Event History: every event whose date has passed (newest first), with
   // its results update(s) shown inside the same card
-  const resultsByEvent = {};
-  withClub.filter(p => p.kind === "event_result").forEach(r => {
-    (resultsByEvent[r.parent_event_id] = resultsByEvent[r.parent_event_id] || []).push(r);
-  });
-  const completed = withClub.filter(p => p.kind === "event" && p.event_date < today).sort((a, b) => b.event_date.localeCompare(a.event_date));
+  const completed = withClub.filter(p => p.kind === "event" && isDone(p)).sort((a, b) => b.event_date.localeCompare(a.event_date));
   const orphanResults = withClub.filter(p => p.kind === "event_result" && (!p.parent_event_id || !byId[p.parent_event_id]));
 
   const hist = $("detail-history-list");
