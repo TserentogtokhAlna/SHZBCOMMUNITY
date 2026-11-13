@@ -119,12 +119,25 @@ async function loadLeadData() {
     return;
   }
   (forms.data || []).forEach(f => f.questions.sort((a, b) => a.position - b.position));
+
+  let postEdits = [];
+  const approvedIds = (posts.data || []).filter(p => p.status === "approved").map(p => p.id);
+  if (approvedIds.length) {
+    const { data: edits, error: editsErr } = await supabaseClient
+      .from("club_post_edits")
+      .select("*")
+      .in("post_id", approvedIds)
+      .in("status", ["pending", "changes_requested", "rejected"])
+      .order("submitted_at", { ascending: false });
+    if (!editsErr) postEdits = edits;
+  }
   lead.data = {
     club: club.data,
     members: members.data || [],
     formerMembers: formerMembers.data || [],
     applications: apps.data || [],
     posts: posts.data || [],
+    postEdits,
     achievements: achievements.data || [],
     forms: forms.data || [],
     changes: changes.data || [],
@@ -765,6 +778,8 @@ function renderLeadPosts(el, d) {
       ${d.posts.length === 0 ? '<p class="empty-state">Nothing posted yet.</p>' : d.posts.map(p => {
         const parent = p.parent_event_id ? d.posts.find(x => x.id === p.parent_event_id) : null;
         const uk = uiPostKind(p);
+        const edit = openEditFor(d, p.id);
+        const lastRejectedEdit = !edit && d.postEdits.find(e => e.post_id === p.id && e.status === "rejected");
         const lifecycle = p.kind === "event" && p.status === "approved"
           ? (p.event_date >= today ? '<span class="status-badge is-open">Upcoming</span>' : '<span class="status-badge is-closed">Completed</span>') : "";
         return `
@@ -774,24 +789,33 @@ function renderLeadPosts(el, d) {
             <strong>${escapeHtml(p.title)}</strong>
             <span class="muted">${POST_KIND_LABELS[uk]}${p.kind === "event" ? ` · ${escapeHtml(formatEventDay(p.event_date))}` : ""}${parent ? ` · for “${escapeHtml(parent.title)}”` : ""} · submitted ${formatShortDate(p.submitted_at)}</span>
             ${p.review_note && p.status !== "approved" ? `<p class="review-note"><strong>Administrator:</strong> ${escapeHtml(p.review_note)}</p>` : ""}
+            ${edit && edit.status === "changes_requested" ? `<p class="review-note"><strong>Administrator (about your edit):</strong> ${escapeHtml(edit.review_note)}</p>` : ""}
+            ${lastRejectedEdit ? `<p class="review-note"><strong>Your last edit was rejected:</strong> ${escapeHtml(lastRejectedEdit.review_note)}</p>` : ""}
           </div>
-          <span class="lead-row-badges">${statusBadge(p.status)}${lifecycle}</span>
+          <span class="lead-row-badges">${statusBadge(p.status)}${lifecycle}${edit ? `<span class="status-badge is-${edit.status === "pending" ? "pending" : "changes_requested"}">${edit.status === "pending" ? "Edit awaiting approval" : "Edit needs changes"}</span>` : ""}</span>
           <span class="lead-row-actions">
-            ${["pending", "changes_requested"].includes(p.status) ? `<button class="btn btn-secondary btn-sm" data-edit-post="${p.id}">${p.status === "changes_requested" ? "Edit &amp; resubmit" : "Edit"}</button>` : ""}
-            ${p.status !== "approved" ? `<button class="btn-danger" data-withdraw-post="${p.id}">${p.status === "rejected" ? "Delete" : "Withdraw"}</button>` : ""}
+            ${p.status !== "rejected" ? `<button class="btn btn-secondary btn-sm" data-edit-post="${p.id}">${p.status === "changes_requested" || (edit && edit.status === "changes_requested") ? "Edit &amp; resubmit" : "Edit"}</button>` : ""}
+            ${edit ? `<button class="btn btn-secondary btn-sm" data-cancel-edit="${edit.id}">Cancel edit</button>` : ""}
+            <button class="btn-danger" data-withdraw-post="${p.id}">${["pending", "changes_requested"].includes(p.status) ? "Withdraw" : "Delete"}</button>
             ${p.status === "approved" && uk === "event" && p.event_date <= today && !d.posts.some(x => x.parent_event_id === p.id && x.status !== "rejected") ? `<button class="btn btn-secondary btn-sm" data-results-for="${p.id}">Add results</button>` : ""}
           </span>
         </div>`;
       }).join("")}
     </div>
-    <p class="muted small-note">Approved posts can't be edited. An event shows under Upcoming Events until its date, then moves to Event History, where its approved results appear inside it. Use <strong>Add past event</strong> for events that happened before (for example, before the club joined the site).</p>`;
+    <p class="muted small-note">Editing a published post sends the change to an administrator; the current version stays published until it's approved. An event shows under Upcoming Events until its date, then moves to Event History, where its approved results appear inside it. Use <strong>Add past event</strong> for events that happened before (for example, before the club joined the site).</p>`;
 
   el.querySelectorAll("[data-new-post]").forEach(btn => btn.addEventListener("click", () => openPostModal(btn.dataset.newPost)));
   el.querySelectorAll("[data-edit-post]").forEach(btn => btn.addEventListener("click", () => openPostModal(null, d.posts.find(p => p.id === btn.dataset.editPost))));
   el.querySelectorAll("[data-results-for]").forEach(btn => btn.addEventListener("click", () => openPostModal("event_result", null, btn.dataset.resultsFor)));
   el.querySelectorAll("[data-withdraw-post]").forEach(btn => btn.addEventListener("click", async () => {
     const post = d.posts.find(p => p.id === btn.dataset.withdrawPost);
-    const ok = await confirmDialog(`${post.status === "rejected" ? "Delete" : "Withdraw"} “${post.title}”?`, { title: "Remove post", confirmText: post.status === "rejected" ? "Delete" : "Withdraw", danger: true });
+    const published = post.status === "approved";
+    const hasResults = d.posts.some(x => x.parent_event_id === post.id);
+    const ok = await confirmDialog(
+      published
+        ? `Delete the published post “${post.title}”? It disappears from the club page and announcements. This can't be undone.${hasResults ? " Results posted for this event stay, but are no longer attached to it." : ""}`
+        : `${post.status === "rejected" ? "Delete" : "Withdraw"} “${post.title}”?`,
+      { title: published ? "Delete published post" : "Remove post", confirmText: post.status === "pending" || post.status === "changes_requested" ? "Withdraw" : "Delete", danger: true });
     if (!ok) return;
     await withBusy(btn, "…", async () => {
       const { error } = await supabaseClient.rpc("withdraw_submission", { p_kind: "post", p_id: post.id });
@@ -800,6 +824,20 @@ function renderLeadPosts(el, d) {
       reloadLead();
     });
   }));
+  el.querySelectorAll("[data-cancel-edit]").forEach(btn => btn.addEventListener("click", async () => {
+    const ok = await confirmDialog("Cancel your pending changes? The published version stays as it is.", { title: "Cancel edit", confirmText: "Cancel edit", danger: true });
+    if (!ok) return;
+    await withBusy(btn, "…", async () => {
+      const { error } = await supabaseClient.rpc("withdraw_submission", { p_kind: "post_edit", p_id: btn.dataset.cancelEdit });
+      if (error) return showToast(friendlyError(error), "error");
+      showToast("Edit cancelled.", "success");
+      reloadLead();
+    });
+  }));
+}
+
+function openEditFor(d, postId) {
+  return (d.postEdits || []).find(e => e.post_id === postId && ["pending", "changes_requested"].includes(e.status)) || null;
 }
 
 // ---------- post modal ----------
@@ -847,10 +885,12 @@ function openPostModal(kind, post = null, parentId = null) {
   if (!d) return;
   postState.editing = post;
   const k = post ? uiPostKind(post) : kind;
+  const pendingEdit = post && post.status === "approved" ? openEditFor(d, post.id) : null;
+  const src = pendingEdit ? { ...post, ...pendingEdit, photos: pendingEdit.photos.map((url, i) => ({ url, position: i + 1 })) } : post;
   $("form-post").reset();
   $("post-error").textContent = "";
   $("post-modal-title").textContent = post ? `Edit ${POST_KIND_LABELS[k].toLowerCase()}` : `New ${POST_KIND_LABELS[k].toLowerCase()}`;
-  $("post-submit-btn").textContent = post ? "Resubmit for approval" : "Submit for approval";
+  $("post-submit-btn").textContent = post && post.status === "approved" ? "Submit changes for approval" : post ? "Resubmit for approval" : "Submit for approval";
   postKindButtons.forEach(b => { b.disabled = !!post; });
 
   const today = todayDateStr();
@@ -861,22 +901,24 @@ function openPostModal(kind, post = null, parentId = null) {
     : '<option value="">No completed events yet</option>';
 
   setPostKind(k);
+  // an event that already took place can keep its (past) date when edited
+  if (post && post.event_date && post.event_date < today) $("post-date").removeAttribute("min");
 
   if (post) {
-    $("post-title").value = post.title;
-    $("post-body").value = post.body;
-    $("post-date").value = post.event_date || "";
-    $("post-start").value = formatTime(post.start_time);
-    $("post-end").value = formatTime(post.end_time);
-    $("post-location").value = post.location || "";
+    $("post-title").value = src.title;
+    $("post-body").value = src.body;
+    $("post-date").value = src.event_date || "";
+    $("post-start").value = formatTime(src.start_time);
+    $("post-end").value = formatTime(src.end_time);
+    $("post-location").value = src.location || "";
     if (post.parent_event_id) $("post-parent").value = post.parent_event_id;
   } else if (parentId) {
     $("post-parent").value = parentId;
     const parent = pastEvents.find(p => p.id === parentId);
     if (parent) $("post-title").value = `Results: ${parent.title}`.slice(0, 150);
   }
-  postCoverPicker.setUrl(post ? post.cover_url : null);
-  postState.photos = post && post.photos ? post.photos.slice().sort((a, b) => a.position - b.position).map(p => ({ url: p.url })) : [];
+  postCoverPicker.setUrl(post ? src.cover_url : null);
+  postState.photos = post && src.photos ? src.photos.slice().sort((a, b) => a.position - b.position).map(p => ({ url: p.url })) : [];
   renderPostPhotos();
   openModal("post-modal-overlay");
   $("post-title").focus();
@@ -930,7 +972,8 @@ $("form-post").addEventListener("submit", async e => {
   const isEvent = kind === "event" || kind === "past_event";
   if (isEvent) {
     if (!eventDate) { errorEl.textContent = "Please choose the event date."; return; }
-    if (kind === "event" && eventDate < todayDateStr()) { errorEl.textContent = "The event date can't be in the past. Use \"Add past event\" for events that already happened."; return; }
+    const editingPastEvent = postState.editing && postState.editing.event_date && postState.editing.event_date < todayDateStr();
+    if (kind === "event" && eventDate < todayDateStr() && !editingPastEvent) { errorEl.textContent = "The event date can't be in the past. Use \"Add past event\" for events that already happened."; return; }
     if (kind === "past_event" && eventDate >= todayDateStr()) { errorEl.textContent = "A past event's date must be before today."; return; }
     if (kind === "past_event" && !body) { errorEl.textContent = "Please describe the event."; return; }
     if (end && !start) { errorEl.textContent = "Add a start time too."; return; }
@@ -982,7 +1025,9 @@ $("form-post").addEventListener("submit", async e => {
       return;
     }
     closeModalById("post-modal-overlay");
-    showToast("Submitted! It will be published once an administrator approves it.", "success");
+    showToast(postState.editing && postState.editing.status === "approved"
+      ? "Changes submitted. The current version stays published until an administrator approves them."
+      : "Submitted! It will be published once an administrator approves it.", "success");
     if (lead.tab !== "posts") {
       navigate(`#/lead/${lead.clubId}/posts`);
     } else {

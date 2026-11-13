@@ -592,3 +592,63 @@
     font-size: 24px;
   }
 }
+
+/* ---------- published post controls ---------- */
+
+.review-manage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: -6px 0 18px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px dashed var(--border-strong);
+}
+
+.review-manage .muted {
+  font-size: 13px;
+  margin-right: auto;
+}
+
+.diff-thumbs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.diff-thumbs img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.pe-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pe-image {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 120px;
+  font-size: 12.5px;
+  color: var(--text-body);
+  cursor: pointer;
+}
+
+.pe-image img {
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+}
+
+.pe-image input {
+  width: auto;
+  accent-color: var(--accent);
+}

@@ -145,6 +145,7 @@
           <option value="post:event">Event announcements</option>
           <option value="post:event_result">Event results</option>
           <option value="post:past_event">Past events</option>
+          <option value="post_edit">Edits to published posts</option>
           <option value="post:announcement">Club announcements</option>
           <option value="achievement">Achievements</option>
         </select>
@@ -298,6 +299,11 @@
     </div>
     <div id="review-modal-meta" class="review-meta"></div>
     <div id="review-modal-preview" class="review-preview"></div>
+    <div id="review-modal-manage" class="review-manage" hidden>
+      <span class="muted">This post is published.</span>
+      <button type="button" class="btn btn-secondary btn-sm" id="review-edit-post">Edit post</button>
+      <button type="button" class="btn-danger" id="review-delete-post">Delete post</button>
+    </div>
     <div id="review-modal-decision">
       <div class="field">
         <label for="review-note">Note to the submitter <span class="optional">(required to reject or request changes)</span></label>
@@ -311,6 +317,56 @@
         <button type="button" class="btn btn-primary" data-decision="approved">Approve</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ===================== ADMIN: EDIT PUBLISHED POST ===================== -->
+<div id="post-edit-modal-overlay" class="modal-overlay">
+  <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="post-edit-title">
+    <div class="modal-header">
+      <h2 id="post-edit-title">Edit post</h2>
+      <button class="modal-close" data-close-modal="post-edit-modal-overlay" aria-label="Close">&times;</button>
+    </div>
+    <p class="modal-intro">Changes made by an administrator are published immediately.</p>
+    <form id="form-post-edit" novalidate>
+      <div class="field">
+        <label for="pe-title">Title</label>
+        <input type="text" id="pe-title" maxlength="150" required>
+      </div>
+      <div class="field">
+        <label for="pe-body">Description</label>
+        <textarea id="pe-body" rows="5" maxlength="5000"></textarea>
+      </div>
+      <div id="pe-event-fields">
+        <div class="form-row">
+          <div class="field">
+            <label for="pe-date">Event date</label>
+            <input type="date" id="pe-date">
+          </div>
+          <div class="field">
+            <label for="pe-start">Start time</label>
+            <input type="time" id="pe-start">
+          </div>
+          <div class="field">
+            <label for="pe-end">End time</label>
+            <input type="time" id="pe-end">
+          </div>
+        </div>
+        <div class="field">
+          <label for="pe-location">Location</label>
+          <input type="text" id="pe-location" maxlength="200">
+        </div>
+      </div>
+      <div class="field" id="pe-images-field">
+        <label>Images <span class="optional">(untick to remove)</span></label>
+        <div id="pe-images" class="pe-images"></div>
+      </div>
+      <p class="form-error" id="pe-error" role="alert"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close-modal="post-edit-modal-overlay">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="pe-save">Save &amp; publish</button>
+      </div>
+    </form>
   </div>
 </div>
 

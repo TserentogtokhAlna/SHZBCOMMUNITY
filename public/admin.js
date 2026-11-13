@@ -248,6 +248,7 @@ async function openReviewModal(r) {
   $("review-note").value = r.status === "pending" ? "" : (r.review_note || "");
   $("review-error").textContent = "";
   $("review-modal-decision").hidden = r.status !== "pending";
+  $("review-modal-manage").hidden = !(r.kind === "post" && r.status === "approved");
   const preview = $("review-modal-preview");
   preview.innerHTML = loadingHtml("Loading preview…");
   openModal("review-modal-overlay");
@@ -325,6 +326,36 @@ async function buildPreview(r) {
       <p class="muted">Approving replaces the club's current live form. Students who already applied keep their original answers.</p>`;
   }
 
+  if (r.kind === "post_edit") {
+    const { data: e, error } = await supabaseClient.from("club_post_edits").select("*").eq("id", r.id).single();
+    if (error) throw error;
+    const { data: p, error: pErr } = await supabaseClient
+      .from("club_posts").select("*, photos:club_post_photos(url, position)").eq("id", e.post_id).single();
+    if (pErr) throw new Error("The original post no longer exists.");
+    const oldPhotos = (p.photos || []).sort((a, b) => a.position - b.position).map(x => x.url);
+    const thumbs = urls => urls.length ? `<div class="diff-thumbs">${urls.map(u => `<img src="${escapeHtml(u)}" alt="">`).join("")}</div>` : '<span class="muted">None</span>';
+    const when = x => x.event_date ? `${formatEventDay(x.event_date)}${x.start_time ? ` · ${formatTimeRange(x.start_time, x.end_time)}` : ""}` : "—";
+    const row = (label, before, after, html = false) => {
+      const changed = String(before) !== String(after);
+      return `<tr class="${changed ? "is-changed" : ""}"><th>${label}</th><td>${html ? before : escapeHtml(before)}</td><td>${html ? after : escapeHtml(after)}</td></tr>`;
+    };
+    return `
+      <table class="diff-table">
+        <thead><tr><th></th><th>Published now</th><th>Proposed</th></tr></thead>
+        <tbody>
+          ${row("Title", p.title, e.title)}
+          ${row("Description", p.body || "—", e.body || "—")}
+          ${p.kind === "event" ? row("Date &amp; time", when(p), when(e)) : ""}
+          ${p.kind === "event" ? row("Location", p.location || "—", e.location || "—") : ""}
+          ${String(p.cover_url || "") !== String(e.cover_url || "")
+            ? `<tr class="is-changed"><th>Poster</th><td>${imgOrNone(p.cover_url, "preview-logo")}</td><td>${imgOrNone(e.cover_url, "preview-logo")}</td></tr>` : ""}
+          ${oldPhotos.join("|") !== (e.photos || []).join("|")
+            ? `<tr class="is-changed"><th>Photos</th><td>${thumbs(oldPhotos)}</td><td>${thumbs(e.photos || [])}</td></tr>` : ""}
+        </tbody>
+      </table>
+      <p class="muted">Changed rows are highlighted. Approving replaces the published version.</p>`;
+  }
+
   if (r.kind === "post") {
     const { data: p, error } = await supabaseClient.from("club_posts").select("*, photos:club_post_photos(url, position)").eq("id", r.id).single();
     if (error) throw error;
@@ -390,6 +421,97 @@ document.querySelectorAll("[data-decision]").forEach(btn => btn.addEventListener
     if (name === "overview") loadOverview(); else loadApprovals();
   });
 }));
+
+// ---------- published posts: admin edit & delete ----------
+
+$("review-delete-post").addEventListener("click", async e => {
+  if (!reviewing) return;
+  const ok = await confirmDialog(`Delete the published post “${reviewing.title}”? It disappears from the club page and announcements. This can't be undone.`,
+    { title: "Delete post", confirmText: "Delete", danger: true });
+  if (!ok) return;
+  await withBusy(e.currentTarget, "…", async () => {
+    const { error } = await supabaseClient.from("club_posts").delete().eq("id", reviewing.id);
+    if (error) return showToast(friendlyError(error), "error");
+    closeModalById("review-modal-overlay");
+    showToast("Post deleted.", "success");
+    loadApprovals();
+  });
+});
+
+$("review-edit-post").addEventListener("click", () => {
+  if (reviewing) openPostEditModal(reviewing.id);
+});
+
+let editingPost = null;
+
+async function openPostEditModal(postId) {
+  const { data: p, error } = await supabaseClient
+    .from("club_posts").select("*, photos:club_post_photos(id, url, position)").eq("id", postId).single();
+  if (error) return showToast(friendlyError(error), "error");
+  editingPost = p;
+  $("pe-error").textContent = "";
+  $("post-edit-title").textContent = `Edit: ${p.title}`;
+  $("pe-title").value = p.title;
+  $("pe-body").value = p.body || "";
+  $("pe-event-fields").hidden = p.kind !== "event";
+  $("pe-date").value = p.event_date || "";
+  $("pe-start").value = formatTime(p.start_time);
+  $("pe-end").value = formatTime(p.end_time);
+  $("pe-location").value = p.location || "";
+
+  const images = [
+    ...(p.cover_url ? [{ key: "cover", url: p.cover_url, label: "Poster" }] : []),
+    ...(p.photos || []).sort((a, b) => a.position - b.position).map((ph, i) => ({ key: ph.id, url: ph.url, label: `Photo ${i + 1}` })),
+  ];
+  $("pe-images-field").hidden = images.length === 0;
+  $("pe-images").innerHTML = images.map(img => `
+    <label class="pe-image">
+      <img src="${escapeHtml(img.url)}" alt="">
+      <span><input type="checkbox" data-keep="${escapeHtml(img.key)}" checked> Keep ${escapeHtml(img.label)}</span>
+    </label>`).join("");
+  openModal("post-edit-modal-overlay");
+  $("pe-title").focus();
+}
+
+$("form-post-edit").addEventListener("submit", async e => {
+  e.preventDefault();
+  const p = editingPost;
+  const errorEl = $("pe-error");
+  errorEl.textContent = "";
+  const title = $("pe-title").value.trim();
+  const body = $("pe-body").value.trim();
+  if (title.length < 3) { errorEl.textContent = "Title must be at least 3 characters."; return; }
+  const changes = { title, body, updated_at: new Date().toISOString() };
+  if (p.kind === "event") {
+    const date = $("pe-date").value;
+    const start = $("pe-start").value;
+    const end = $("pe-end").value;
+    if (!date) { errorEl.textContent = "Events need a date."; return; }
+    if (end && !start) { errorEl.textContent = "Add a start time too."; return; }
+    if (start && end && end < start) { errorEl.textContent = "The end time must be after the start time."; return; }
+    Object.assign(changes, { event_date: date, start_time: start || null, end_time: end || null, location: $("pe-location").value.trim() });
+  }
+  const removed = [...document.querySelectorAll("#pe-images [data-keep]")].filter(c => !c.checked).map(c => c.dataset.keep);
+  if (removed.includes("cover")) changes.cover_url = null;
+  const removedPhotoIds = removed.filter(k => k !== "cover");
+  if (p.kind === "event_result" && removedPhotoIds.length >= (p.photos || []).length && (p.photos || []).length > 0) {
+    errorEl.textContent = "Event results need at least one photo.";
+    return;
+  }
+
+  await withBusy($("pe-save"), "Saving…", async () => {
+    const { error } = await supabaseClient.from("club_posts").update(changes).eq("id", p.id);
+    if (error) { errorEl.textContent = friendlyError(error); return; }
+    if (removedPhotoIds.length) {
+      const { error: phErr } = await supabaseClient.from("club_post_photos").delete().in("id", removedPhotoIds);
+      if (phErr) { errorEl.textContent = friendlyError(phErr); return; }
+    }
+    closeModalById("post-edit-modal-overlay");
+    closeModalById("review-modal-overlay");
+    showToast("Post updated.", "success");
+    loadApprovals();
+  });
+});
 
 // ============================================================
 // CLUBS
