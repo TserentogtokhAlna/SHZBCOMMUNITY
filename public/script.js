@@ -1416,9 +1416,9 @@ function applyStudentSearch() {
     card.innerHTML = `
       <span class="person-avatar">${escapeHtml(initials(p))}</span>
       <span class="person-info">
-        <span class="person-name">${escapeHtml(fullName(p))}${p.role === "admin" ? ' <span class="admin-badge">Admin</span>' : ""}</span>
+        <span class="person-name">${escapeHtml(fullName(p))}</span>
         <span class="person-meta">${icon(isTeacher ? "book" : "gradCap")}${escapeHtml(profileSubtitle(p))}</span>
-        ${!isTeacher && clubs.length ? `<span class="person-clubs">${clubChipsHtml(p.id, clubs)}</span>` : ""}
+        ${p.role === "admin" || (!isTeacher && clubs.length) ? `<span class="person-clubs">${p.role === "admin" ? `<span class="admin-chip" title="Administrator of SHZB Community">${icon("shield")}Website Admin</span>` : ""}${!isTeacher ? clubChipsHtml(p.id, clubs) : ""}</span>` : ""}
       </span>
       <span class="person-chevron">${icon("chevronRight")}</span>
     `;
@@ -1469,7 +1469,7 @@ async function showStudentProfile(userId, isOwn) {
   $("student-profile-avatar").textContent = initials(profile);
   $("student-profile-name").textContent = fullName(profile);
   $("student-profile-meta").innerHTML = escapeHtml(profileSubtitle(profile)) +
-    (profile.role === "admin" ? ' <span class="admin-badge" title="Administrator of SHZB Community">Website admin</span>' : "");
+    (profile.role === "admin" ? ` <span class="admin-chip is-large" title="Administrator of SHZB Community">${icon("shield")}Website Admin</span>` : "");
   $("student-profile-bio").textContent = profile.bio || "No bio yet.";
   $("student-profile-bio").classList.toggle("is-empty", !profile.bio);
   $("student-profile-edit-btn").hidden = !isOwn;

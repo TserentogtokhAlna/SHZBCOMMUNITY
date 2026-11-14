@@ -4634,3 +4634,41 @@ body.lightbox-open {
   color: var(--gold);
   border-color: rgba(240, 195, 90, 0.45);
 }
+
+/* ---------- "Website Admin" chip: strong brand red, stands apart from
+   gold (leader) and grey (member) club chips ---------- */
+
+.admin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #fff;
+  background: linear-gradient(135deg, #ff3355, #ed1a3b 45%, #b3122c);
+  border: 1px solid rgba(255, 120, 140, 0.7);
+  box-shadow: 0 0 0 1px rgba(237, 26, 59, 0.25), 0 4px 14px rgba(237, 26, 59, 0.35);
+  vertical-align: middle;
+}
+
+.admin-chip .icon {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2.5;
+}
+
+.admin-chip.is-large {
+  margin-left: 10px;
+  padding: 4px 12px 4px 10px;
+  font-size: 12px;
+}
+
+.admin-chip.is-large .icon {
+  width: 15px;
+  height: 15px;
+}
