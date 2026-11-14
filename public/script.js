@@ -388,8 +388,8 @@ async function loadCurrentUser() {
     profile,
     email: profile.email,
     isAdmin,
-    isTeacher: profile.account_type === "teacher" && !isAdmin,
-    isStudent: profile.account_type === "student" && !isAdmin,
+    isTeacher: profile.account_type === "teacher",
+    isStudent: profile.account_type === "student",
     leaderships: (leads || []).filter(l => l.club),
   };
 }
@@ -440,7 +440,7 @@ function applyRoleVisibility() {
   $("nav-manage-group").hidden = u.leaderships.length === 0 && !u.isAdmin;
   $("create-club-btn").hidden = !u.isStudent;
 
-  const roleLabel = u.isAdmin ? "Administrator"
+  const roleLabel = u.isAdmin ? (u.isStudent ? "Student · Administrator" : u.isTeacher ? "Teacher · Administrator" : "Administrator")
     : u.isTeacher ? "Teacher"
     : u.leaderships.length ? "Student · Club leader"
     : "Student";
@@ -1061,7 +1061,6 @@ async function loadStudentOptions() {
     .select("id, first_name, last_name, graduation_year, class_section")
     .eq("account_type", "student")
     .eq("status", "active")
-    .neq("role", "admin")
     .order("first_name");
   studentOptionsCache = data || [];
   return studentOptionsCache;
@@ -1336,18 +1335,23 @@ async function renderStudents() {
   const grid = $("students-grid");
   if (allPeopleCache.length === 0) grid.innerHTML = loadingHtml("Loading people…");
 
-  const [{ data: people, error }, { data: memberships }] = await Promise.all([
+  const [{ data: people, error }, { data: memberships }, { data: leads }] = await Promise.all([
     supabaseClient
       .from("profiles")
       .select("id, first_name, last_name, account_type, graduation_year, class_section, role, status")
       .in("account_type", ["student", "teacher"])
-      .neq("role", "admin")
       .order("first_name", { ascending: true }),
     supabaseClient
       .from("club_members")
       .select("user_id, club:clubs(id, name, status)")
       .eq("status", "approved"),
+    supabaseClient
+      .from("club_leaders")
+      .select("user_id, club_id, position")
+      .is("ended_at", null),
   ]);
+  leadingByUser = {};
+  (leads || []).forEach(l => { (leadingByUser[l.user_id] = leadingByUser[l.user_id] || {})[l.club_id] = l.position; });
 
   if (error) {
     grid.innerHTML = errorStateHtml("Couldn't load the directory.");
@@ -1364,6 +1368,17 @@ async function renderStudents() {
   applyStudentSearch();
 }
 
+let leadingByUser = {};   // user_id -> { club_id: "leader" | "co_leader" }
+
+function clubChipsHtml(userId, clubs) {
+  const led = leadingByUser[userId] || {};
+  const sorted = clubs.slice().sort((a, b) => (led[b.id] ? 1 : 0) - (led[a.id] ? 1 : 0));
+  const chips = sorted.slice(0, 2).map(c => led[c.id]
+    ? `<span class="mini-chip is-lead" title="${led[c.id] === "leader" ? "Leader" : "Co-leader"}">★ ${escapeHtml(c.name)}</span>`
+    : `<span class="mini-chip">${escapeHtml(c.name)}</span>`).join("");
+  return chips + (sorted.length > 2 ? `<span class="mini-chip is-more">+${sorted.length - 2}</span>` : "");
+}
+
 function applyStudentSearch() {
   let term = studentsSearchInput.value.trim().toLowerCase();
   let gradeFilter = $("students-grade").value;
@@ -1378,7 +1393,7 @@ function applyStudentSearch() {
   }
 
   const filtered = allPeopleCache.filter(p => {
-    if (activePeopleFilter !== "all" && p.account_type !== activePeopleFilter) return false;
+    if (activePeopleFilter === "admin" ? p.role !== "admin" : activePeopleFilter !== "all" && p.account_type !== activePeopleFilter) return false;
     if (gradeFilter || classFilter) {
       if (p.account_type !== "student" || !p.graduation_year) return false;
       if (gradeFilter && String(computeCurrentGrade(p.graduation_year)) !== gradeFilter) return false;
@@ -1401,9 +1416,9 @@ function applyStudentSearch() {
     card.innerHTML = `
       <span class="person-avatar">${escapeHtml(initials(p))}</span>
       <span class="person-info">
-        <span class="person-name">${escapeHtml(fullName(p))}</span>
+        <span class="person-name">${escapeHtml(fullName(p))}${p.role === "admin" ? ' <span class="admin-badge">Admin</span>' : ""}</span>
         <span class="person-meta">${icon(isTeacher ? "book" : "gradCap")}${escapeHtml(profileSubtitle(p))}</span>
-        ${!isTeacher && clubs.length ? `<span class="person-clubs">${clubs.slice(0, 2).map(c => `<span class="mini-chip">${escapeHtml(c.name)}</span>`).join("")}${clubs.length > 2 ? `<span class="mini-chip is-more">+${clubs.length - 2}</span>` : ""}</span>` : ""}
+        ${!isTeacher && clubs.length ? `<span class="person-clubs">${clubChipsHtml(p.id, clubs)}</span>` : ""}
       </span>
       <span class="person-chevron">${icon("chevronRight")}</span>
     `;
@@ -1453,12 +1468,13 @@ async function showStudentProfile(userId, isOwn) {
   const isTeacher = profile.account_type === "teacher";
   $("student-profile-avatar").textContent = initials(profile);
   $("student-profile-name").textContent = fullName(profile);
-  $("student-profile-meta").textContent = profile.role === "admin" ? "Administrator" : profileSubtitle(profile);
+  $("student-profile-meta").innerHTML = escapeHtml(profileSubtitle(profile)) +
+    (profile.role === "admin" ? ' <span class="admin-badge" title="Administrator of SHZB Community">Website admin</span>' : "");
   $("student-profile-bio").textContent = profile.bio || "No bio yet.";
   $("student-profile-bio").classList.toggle("is-empty", !profile.bio);
   $("student-profile-edit-btn").hidden = !isOwn;
   $("student-profile-edit-btn").onclick = () => openEditProfileModal(profile);
-  $("student-profile-club-sections").hidden = isTeacher || profile.role === "admin";
+  $("student-profile-club-sections").hidden = isTeacher;
 
   const rows = (history || []).filter(h => h.club);
   const leads = (leaderships || []).filter(l => l.club);
@@ -1639,7 +1655,7 @@ function openEditProfileModal(profile) {
   $("edit-profile-bio").value = profile.bio || "";
 
   // grade/class only apply to students
-  const isStudentProfile = profile.account_type === "student" && profile.role !== "admin";
+  const isStudentProfile = profile.account_type === "student";
   $("edit-profile-grade-row").hidden = !isStudentProfile;
   $("edit-profile-grade-hint").hidden = !isStudentProfile;
   if (isStudentProfile) {
@@ -1837,7 +1853,7 @@ function renderDetailActions(d) {
     add(`<a class="btn btn-primary btn-sm btn-with-icon" href="#/lead/${club.id}">${icon("settings")}Manage club</a>`);
     return;
   }
-  if (currentUser.isAdmin) {
+  if (currentUser.isAdmin && !currentUser.isStudent && !currentUser.isTeacher) {
     add(`<span class="pill pill-member">Administrator view</span>`);
     return;
   }

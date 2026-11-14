@@ -107,8 +107,8 @@ async function loadOverview() {
 
   const head = { count: "exact", head: true };
   const [students, teachers, activeClubs, leaderRows, memberships, pendingClubs, pendingContent, events] = await Promise.all([
-    countOf(supabaseClient.from("profiles").select("id", head).eq("account_type", "student").neq("role", "admin")),
-    countOf(supabaseClient.from("profiles").select("id", head).eq("account_type", "teacher").neq("role", "admin")),
+    countOf(supabaseClient.from("profiles").select("id", head).eq("account_type", "student")),
+    countOf(supabaseClient.from("profiles").select("id", head).eq("account_type", "teacher")),
     countOf(supabaseClient.from("clubs").select("id", head).eq("status", "approved")),
     supabaseClient.from("club_leaders").select("user_id").is("ended_at", null),
     countOf(supabaseClient.from("club_members").select("id", head).eq("status", "approved")),
@@ -599,7 +599,7 @@ async function openNewClubModal() {
 
   $("nc-category").innerHTML = categoriesCache.map(c => `<option>${escapeHtml(c.name)}</option>`).join("");
   const students = Object.values(profilesById)
-    .filter(p => p.account_type === "student" && p.role !== "admin" && p.status === "active")
+    .filter(p => p.account_type === "student" && p.status === "active")
     .sort((a, b) => fullName(a).localeCompare(fullName(b)));
   $("nc-leader").innerHTML = `<option value="">No leader yet</option>` + students.map(s => `
     <option value="${s.id}">${escapeHtml(fullName(s))}${s.graduation_year ? ` — ${escapeHtml(formatGradeLabel(s.graduation_year, s.class_section))}` : ""}</option>`).join("");
@@ -671,7 +671,7 @@ async function openClubModal(clubId) {
   const current = members.filter(m => m.status === "approved");
   const former = members.filter(m => m.status === "left");
   const managed = ["approved", "suspended", "archived"].includes(club.status);
-  const students = Object.values(profilesById).filter(p => p.account_type === "student" && p.role !== "admin" && p.status === "active");
+  const students = Object.values(profilesById).filter(p => p.account_type === "student" && p.status === "active");
 
   body.innerHTML = `
     <div class="club-admin-grid">
@@ -887,7 +887,7 @@ function renderUsersTable() {
 
   const rows = usersCache.filter(p => {
     if (type === "admin" && p.role !== "admin") return false;
-    if (type === "student" && (p.account_type !== "student" || p.role === "admin")) return false;
+    if (type === "student" && p.account_type !== "student") return false;
     if (type === "teacher" && p.account_type !== "teacher") return false;
     if (type === "leader" && !activeLeaderUserIds.has(p.id)) return false;
     if (status !== "all" && p.status !== status) return false;

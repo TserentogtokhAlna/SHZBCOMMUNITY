@@ -21,6 +21,7 @@ Run the SQL files in `supabase/` **in order** in the Supabase dashboard (SQL Edi
 9. `migration_009_past_events.sql`: leaders can record past events (date in the past, description, up to 3 photos) straight into Event History
 10. `migration_010_leaderboard_counts_events.sql`: upcoming event announcements also score on the leaderboard (1 pt when published)
 11. `migration_011_edit_published_posts.sql`: leaders can edit (with admin approval) and delete their published posts; admins can edit and delete any post
+12. `migration_012_admin_students.sql`: administrators who are students can join, request and lead clubs like other students
 
 Migration 006 runs in a single transaction. If anything fails, nothing is applied. It carries existing data forward:
 - Existing approved clubs' creators become their leaders.
