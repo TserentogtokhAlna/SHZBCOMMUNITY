@@ -4672,3 +4672,8 @@ body.lightbox-open {
   width: 15px;
   height: 15px;
 }
+
+.lb-toggle {
+  align-self: center;
+  margin-top: 6px;
+}

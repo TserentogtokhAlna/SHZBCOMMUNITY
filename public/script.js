@@ -805,6 +805,11 @@ leaderboardPeriodButtons.forEach(btn => {
   });
 });
 
+// The homepage shows the top 5; "Show all" expands to every active club.
+const LEADERBOARD_PREVIEW = 5;
+let leaderboardData = [];
+let leaderboardExpanded = false;
+
 async function renderLeaderboard() {
   const el = $("leaderboard");
   el.innerHTML = loadingHtml("Loading rankings…");
@@ -813,15 +818,21 @@ async function renderLeaderboard() {
     el.innerHTML = errorStateHtml("Couldn't load the leaderboard.");
     return;
   }
-  // every active club is listed (top 10), even before anyone has points
-  const ranked = data.slice(0, 10);
-  if (ranked.length === 0) {
+  leaderboardData = data;
+  drawLeaderboard();
+}
+
+function drawLeaderboard() {
+  const el = $("leaderboard");
+  const data = leaderboardData;
+  if (data.length === 0) {
     el.innerHTML = `<p class="empty-state">No active clubs yet.</p>`;
     return;
   }
-  const top = ranked[0].score || 1;
-  const noActivity = ranked[0].score === 0;
-  el.innerHTML = (noActivity ? `<p class="leaderboard-empty-note">No approved activity ${leaderboardPeriod === "all" ? "yet" : "in this period"}. Clubs earn points when their events take place and their results are published.</p>` : "") + ranked.map((r, i) => `
+  const shown = leaderboardExpanded ? data : data.slice(0, LEADERBOARD_PREVIEW);
+  const top = data[0].score || 1;
+  const noActivity = data[0].score === 0;
+  el.innerHTML = (noActivity ? `<p class="leaderboard-empty-note">No approved activity ${leaderboardPeriod === "all" ? "yet" : "in this period"}. Clubs earn points when their events take place and their results are published.</p>` : "") + shown.map((r, i) => `
     <a class="lb-row${!noActivity && i < 3 ? ` is-top is-top-${i + 1}` : ""}" href="#/club/${r.club_id}">
       <span class="lb-rank">${noActivity ? "–" : i + 1}</span>
       <span class="lb-logo" data-category="${escapeHtml(r.category)}">${clubLogoHtml(r)}</span>
@@ -832,7 +843,17 @@ async function renderLeaderboard() {
       </span>
       <span class="lb-score"><strong>${r.score}</strong><span>pts</span></span>
     </a>
-  `).join("");
+  `).join("") + (data.length > LEADERBOARD_PREVIEW ? `
+    <button type="button" class="btn btn-secondary btn-sm lb-toggle" id="leaderboard-toggle" aria-expanded="${leaderboardExpanded}">
+      ${leaderboardExpanded ? "Show less" : `Show all ${data.length} clubs`}
+    </button>` : "");
+
+  const toggle = $("leaderboard-toggle");
+  if (toggle) toggle.addEventListener("click", () => {
+    leaderboardExpanded = !leaderboardExpanded;
+    drawLeaderboard();
+    if (!leaderboardExpanded) $("leaderboard-heading").scrollIntoView({ block: "nearest", behavior: "smooth" });
+  });
 }
 
 // ---------- upcoming events (home) ----------
